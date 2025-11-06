@@ -18,6 +18,15 @@ using DataFrames
     @test df.col2 == ["hello", "world"]
 end
 
+#test standardize_colnames!
+@testset "standardize_colnames!" begin
+    df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])
+    standardize_colnames!(df)
+    @test names(df) == [:my_col_1, :salaire]
+end
+
+
+
 #test d'enforce_type
 
 @testset "enforce_types basic tests" begin
