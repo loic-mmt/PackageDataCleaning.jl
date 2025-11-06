@@ -1,0 +1,1 @@
+# petites fonctions transverses (normalisation de chaînes, mappings, etc.)
