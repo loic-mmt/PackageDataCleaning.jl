@@ -1,7 +1,17 @@
 name = "PackageDataCleaning"
 uuid = "c51101f7-0eb4-4bdd-baba-72b9075c48d8"
 version = "0.1.0"
+
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+
+[compat]
+CSV = "0.10.15"
+CategoricalArrays = "1.0.2"
+DataFrames = "1.8.1"
+
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 

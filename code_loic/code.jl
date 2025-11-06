@@ -17,24 +17,6 @@ function read_raw_csv(path::AbstractString; delim = ',', kwargs...)
     return CSV.read(path, DataFrame; delim = delim, kwargs)
 end
 
-@testset "read_raw_csv returns a DataFrame" begin
-    df = DataFrame(
-        a = ["1", "2", "3", "x", missing],
-        b = ["chat", "chien", "chat", "souris", "chien"],
-        c = ["", " ", "4", "5", "6"]
-    )
-
-    df2 = enforce_types(df)
-
-    # Vérifie que a est numérique
-    @test eltype(df2.a) <: Union{Missing, Int}
-
-    # Vérifie que b est catégorielle
-    @test isa(df2.b, CategoricalVector)
-
-    # Vérifie que c est numérique (car majoritairement nombres)
-    @test eltype(df2.c) <: Union{Missing, Float64}
-end
 
 
 # standardize_colnames: snake case, no special caracters, no spaces

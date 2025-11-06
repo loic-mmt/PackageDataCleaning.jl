@@ -13,7 +13,7 @@ Charge un CSV brut dans un DataFrame.
 Lève un ArgumentError si le ficier n'existe pas.
 """
 
-function read_raw_csv(path::AbstractString; delim = ',', kwargs...)
+function load_raw_csv(path::AbstractString; delim = ',', kwargs...)
     isfile(path) || throw(ArgumentError("CSV file not found at: $path"))
     return CSV.read(path, DataFrame; delim = delim, kwargs)
 end
