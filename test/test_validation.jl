@@ -18,6 +18,18 @@ using DataFrames
     @test df.col2 == ["hello", "world"]
 end
 
+
+#test validate_schema
+@testset "validate_schema" begin
+    df = DataFrame(a = [1], b = [2])
+    @test validate_schema(df, [:a, :b]) == true
+    @test_throws ArgumentError validate_schema(df, [:a, :b, :c])
+    missing = validate_schema(df, [:a, :b, :c]; strict=false)
+    @test missing == [:c]
+    @test validate_schema(df, (:a, :b)) == true
+end
+
+
 #test standardize_colnames!
 @testset "standardize_colnames!" begin
     df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])

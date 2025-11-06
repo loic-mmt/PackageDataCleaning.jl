@@ -30,6 +30,39 @@ function load_raw_csv(io::IO; delim=',', kwargs...)
 end
 
 
+
+"""
+    validate_schema(df, required_columns; strict=true)
+
+Vérifie que toutes les colonnes requises sont présentes dans le DataFrame.
+
+- df : DataFrame à contrôler.
+- required_columns : vecteur de Symbol ou de String représentant les noms attendus.
+- strict :
+    - true (défaut)  -> lève un ArgumentError s'il manque des colonnes.
+    - false          -> renvoie le vecteur des colonnes manquantes (ou Symbol[] si OK).
+
+Retourne `true` si le schéma est valide en mode strict.
+"""
+function validate_schema(df::AbstractDataFrame, required_columns; strict::Bool=true)
+    req_syms = Symbol.(required_columns)
+    present = Set(names(df))
+    missing = [c for c in req_syms if !(c in present)]
+
+    if isempty(missing)
+        return true
+    elseif strict
+        missing_str = join(string.(missing), ", ")
+        throw(ArgumentError("Missing required columns: $missing_str"))
+    else
+        return missing
+    end
+end
+validate_schema(df::AbstractDataFrame, required_columns::Tuple; strict::Bool=true) =
+    validate_schema(df, collect(required_columns); strict=strict)
+
+
+
 """
     standardize_colnames!(df)
 
