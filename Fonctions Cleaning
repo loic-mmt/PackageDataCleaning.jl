@@ -1,0 +1,35 @@
+Package: cleaning — Liste minimale des fonctions (noms + rôle)
+==============================================================
+
+# I/O & Validation
+load_raw_csv — Lire le CSV brut et retourner un tibble. OK
+Arthur- validate_schema — Vérifier la présence des colonnes nécessaires.
+Loïc- standardize_colnames — Uniformiser les noms de colonnes en snake_case.
+Margot- enforce_types — Convertir les colonnes aux bons types (numériques, facteurs, etc.).
+Loïc- deduplicate_rows — Supprimer les doublons selon des clés.
+
+# Normalisation (valeurs & référentiels)
+Margot- normalize_experience_level — Mapper {EN, MI, SE, EX} en facteur ordonné.
+Arthur- normalize_employment_type — Normaliser {FT, PT, CT, FL} en libellés/facteur.
+Loïc- normalize_company_size — Mapper {S, M, L} en facteur ordonné.
+Margot- normalize_remote_ratio — Forcer dans [0,100], éventuellement binaire 0/100.
+Arthur- normalize_job_title — Harmoniser les intitulés via dictionnaire de correspondance.
+Loïc- normalize_country_codes — Convertir pays en codes ISO cohérents (+ région si besoin).
+
+# Monnaie & montants
+Margot- convert_currency_to_usd — Convertir salaires en USD et vérifier la cohérence.
+
+# Données manquantes
+Loïc- impute_missing — Imputer num/cat selon une méthode choisie.
+
+# Qualité des données & valeurs aberrantes
+Margot- validate_ranges — Vérifier contraintes (salary > 0, remote_ratio ∈ [0,100], années plausibles).
+Loïc- cap_outliers_salary — Traiter les outliers (winsorisation/écrêtage).
+
+# Orchestration
+Margot- cleaning_pipeline — Orchestrer tout le flux de nettoyage de bout en bout.
+Arthur- finalize_salary_tbl — Assigner la classe S3 salary_tbl pour le dispatch ultérieur.
+
+# Export & reporting
+Loïc- export_cleaned_csv — Exporter le dataset propre (global ou par année).
+Margot- write_cleaning_report — Résumer les opérations de nettoyage (compteurs, outliers, NA).
