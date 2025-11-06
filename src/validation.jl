@@ -15,7 +15,18 @@ Lève un ArgumentError si le ficier n'existe pas.
 
 function load_raw_csv(path::AbstractString; delim = ',', kwargs...)
     isfile(path) || throw(ArgumentError("CSV file not found at: $path"))
-    return CSV.read(path, DataFrame; delim = delim, kwargs)
+    return CSV.read(path, DataFrame; delim=delim, kwargs...)
+end
+
+"""
+
+    load_raw_csv(io::IO; delim=',', kwargs...) -> DataFrame
+
+Variante pour lire depuis un flux IO déjà ouvert (ex: `IOBuffer`, fichier ouvert).
+Utilise la même logique que `load_raw_csv(path::AbstractString, ...)`.
+"""
+function load_raw_csv(io::IO; delim=',', kwargs...)
+    return CSV.read(io, DataFrame; delim=delim, kwargs...)
 end
 
 
@@ -41,4 +52,18 @@ function standardize_colnames!(df)
     end
     rename!(df, Pair.(old, new))
     return df
+end
+
+"""
+
+    standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
+
+Applique `standardize_colnames!` à chaque DataFrame d'une collection.
+Permet de montrer le multiple dispatch sans complexifier la logique.
+"""
+function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
+    for df in dfs
+        standardize_colnames!(df)
+    end
+    return dfs
 end
