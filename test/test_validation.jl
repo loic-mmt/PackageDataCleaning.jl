@@ -1,4 +1,7 @@
+# test read_raw_csv
+using Test, PackageDataCleaning
 
+@test_throws ArgumentError load_raw_csv("fichier_qui_existe_pas.csv")
 
 #test d'enforce_type
 
