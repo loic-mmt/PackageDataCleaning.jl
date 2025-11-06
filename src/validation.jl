@@ -59,7 +59,6 @@ end
     standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
 
 Applique `standardize_colnames!` à chaque DataFrame d'une collection.
-Permet de montrer le multiple dispatch sans complexifier la logique.
 """
 function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     for df in dfs
