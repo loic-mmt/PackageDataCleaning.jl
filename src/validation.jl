@@ -2,7 +2,7 @@
 
 
 """
-load_raw_csv(path; delim=',', kwargs...) -> DataFrame
+    load_raw_csv(path; delim=',', kwargs...) -> DataFrame
 
 Charge un CSV brut dans un DataFrame.
 
@@ -10,7 +10,7 @@ Charge un CSV brut dans un DataFrame.
 - delim: séparateur (par défaut "','").
 - kwargs...: options passées à CSV.read (ex: 'ignorerepeated=true', 'missingstring=["","NA"]').
 
-Lève un ArgumentError si le ficier n'existe pas.
+Lève un ArgumentError si le fichier n'existe pas.
 """
 
 function load_raw_csv(path::AbstractString; delim = ',', kwargs...)
@@ -36,28 +36,54 @@ end
 
 Vérifie que toutes les colonnes requises sont présentes dans le DataFrame.
 
-- df : DataFrame à contrôler.
-- required_columns : vecteur de Symbol ou de String représentant les noms attendus.
-- strict :
-    - true (défaut)  -> lève un ArgumentError s'il manque des colonnes.
-    - false          -> renvoie le vecteur des colonnes manquantes (ou Symbol[] si OK).
+- `df` : DataFrame à contrôler.
+- `required_columns` : collection de `Symbol` ou `String` représentant les noms attendus.
+- `strict` :
+    - `true`  -> lève un `ArgumentError` s'il manque des colonnes.
+    - `false` -> renvoie le vecteur des colonnes manquantes.
 
-Retourne `true` si le schéma est valide en mode strict.
+Cette fonction illustre le multiple dispatch : le comportement réel est déterminé
+par le type du troisième argument (`StrictMode` vs `LenientMode`), pas seulement
+par une condition sur un booléen.
 """
-function validate_schema(df::AbstractDataFrame, required_columns; strict::Bool=true)
+
+abstract type SchemaMode end
+struct StrictMode <: SchemaMode end
+struct LenientMode <: SchemaMode end
+
+"Calcule la liste des colonnes manquantes (interne)."
+function _missing_columns(df::AbstractDataFrame, required_columns)
     req_syms = Symbol.(required_columns)
     present = Set(names(df))
-    missing = [c for c in req_syms if !(c in present)]
+    return [c for c in req_syms if !(c in present)]
+end
 
+"Mode strict : erreur si des colonnes manquent, sinon `true`."
+function validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
+    missing = _missing_columns(df, required_columns)
     if isempty(missing)
         return true
-    elseif strict
+    else
         missing_str = join(string.(missing), ", ")
         throw(ArgumentError("Missing required columns: $missing_str"))
-    else
-        return missing
     end
 end
+
+"Mode tolérant : renvoie la liste des colonnes manquantes (éventuellement vide)."
+function validate_schema(df::AbstractDataFrame, required_columns, ::LenientMode)
+    return _missing_columns(df, required_columns)
+end
+
+
+function validate_schema(df::AbstractDataFrame, required_columns; strict::Bool=true)
+    if strict
+        return validate_schema(df, required_columns, StrictMode())
+    else
+        return validate_schema(df, required_columns, LenientMode())
+    end
+end
+
+
 validate_schema(df::AbstractDataFrame, required_columns::Tuple; strict::Bool=true) =
     validate_schema(df, collect(required_columns); strict=strict)
 
@@ -88,10 +114,13 @@ function standardize_colnames!(df)
 end
 
 """
-
     standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
 
 Applique `standardize_colnames!` à chaque DataFrame d'une collection.
+
+Cette deuxième méthode du même nom illustre le multiple dispatch : Julia choisit
+automatiquement entre la version "un seul DataFrame" et la version "collection
+de DataFrames" selon le type de l'argument.
 """
 function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     for df in dfs
@@ -99,6 +128,8 @@ function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     end
     return dfs
 end
+
+
 
 function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
     out = copy(df)
