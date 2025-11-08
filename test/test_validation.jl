@@ -3,8 +3,9 @@ using Test, PackageDataCleaning
 using DataFrames
 using CategoricalArrays
 
-@test_throws ArgumentError load_raw_csv("fichier_qui_existe_pas.csv")
-@testset "load_raw_csv basic" begin
+
+@testset "load_raw_csv" begin
+    @test_throws ArgumentError load_raw_csv("fichier_qui_existe_pas.csv")
     # CSV temporaire
     csv_path = joinpath(@__DIR__, "sample_load_raw_csv.csv")
     open(csv_path, "w") do io
@@ -14,7 +15,7 @@ using CategoricalArrays
     df = load_raw_csv(csv_path)
 
     @test size(df) == (2, 2)
-    @test names(df) == [:col1, :col2]
+    @test names(df) == ["col1", "col2"]
     @test df.col1 == [1, 2]
     @test df.col2 == ["hello", "world"]
 end
