@@ -5,16 +5,6 @@
 import DataFrames: AbstractDataFrame, nrow, names
 using CategoricalArrays
 
-# We assume `mappings.jl` has been included in the same module, so the following
-# constants are available here:
-#   EMPLOYMENT_TYPE_MAPPING
-#   JOB_TITLE_MAPPING
-#   COUNTRY_CODE_MAPPING
-#   REGION_MAP
-
-# ------------------------------------------------------------------
-# Dispatch types
-# ------------------------------------------------------------------
 
 abstract type NormalMode end
 struct UptoDown  <: NormalMode end
@@ -27,10 +17,7 @@ struct RemoteRatio    <: NormalizeField end
 struct JobTitle       <: NormalizeField end
 struct CountryCode    <: NormalizeField end
 
-# ------------------------------------------------------------------
 # Generic API
-# ------------------------------------------------------------------
-
 """
     normalize!(df, field::NormalizeField, args...; kwargs...)
 
@@ -61,9 +48,7 @@ function normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs
     return df2
 end
 
-# ------------------------------------------------------------------
 # EmploymentType
-# ------------------------------------------------------------------
 
 """
     normalize!(df, EmploymentType(); col = :employment_type)
@@ -93,9 +78,7 @@ function normalize!(df::AbstractDataFrame, ::EmploymentType; col::Symbol = :empl
     return df
 end
 
-# ------------------------------------------------------------------
 # CompanySize
-# ------------------------------------------------------------------
 
 """
     normalize!(df, CompanySize(), UptoDown(); col = :company_size)
@@ -131,9 +114,8 @@ function normalize!(df::AbstractDataFrame, ::CompanySize, ::DowntoUp; col::Symbo
     return df
 end
 
-# ------------------------------------------------------------------
+
 # RemoteRatio
-# ------------------------------------------------------------------
 
 """
     normalize!(df, RemoteRatio(); col=:remote_ratio, allowed=(0,50,100))
@@ -168,9 +150,8 @@ function normalize!(df::AbstractDataFrame, ::RemoteRatio;
     return df
 end
 
-# ------------------------------------------------------------------
+
 # JobTitle
-# ------------------------------------------------------------------
 
 """
     normalize!(df, JobTitle(); col=:job_title, mapping=JOB_TITLE_MAPPING)
@@ -204,9 +185,7 @@ function normalize!(df::AbstractDataFrame, ::JobTitle;
     return df
 end
 
-# ------------------------------------------------------------------
 # CountryCode (+ région optionnelle)
-# ------------------------------------------------------------------
 
 """
     normalize!(df, CountryCode(); col=:country,
