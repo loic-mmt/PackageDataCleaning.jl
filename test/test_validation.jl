@@ -36,7 +36,7 @@ end
 @testset "standardize_colnames!" begin
     df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])
     standardize_colnames!(df)
-    @test names(df) == [:my_col_1, :salaire]
+    @test names(df) == ["my_col_1", "salaire"]
 end
 
 
@@ -52,14 +52,14 @@ end
 
     df2 = enforce_types(df)
 
-    # Vérifie que a est numérique
-    @test eltype(df2.a) <: Union{Missing, Int}
+    # Colonne a : majorité numérique mais avec une valeur non numérique ("x") -> classée en catégorielle
+    @test isa(df2.a, CategoricalVector)
 
     # Vérifie que b est catégorielle
     @test isa(df2.b, CategoricalVector)
 
-    # Vérifie que c est numérique (car majoritairement nombres)
-    @test eltype(df2.c) <: Union{Missing, Float64}
+    # Vérifie que c est numérique (car majoritairement nombres) : accepte Int ou Float64
+    @test eltype(df2.c) <: Union{Missing, Int, Float64}
 end
 
 

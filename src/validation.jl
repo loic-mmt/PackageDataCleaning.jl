@@ -54,7 +54,7 @@ struct LenientMode <: SchemaMode end
 "Calcule la liste des colonnes manquantes (interne)."
 function _missing_columns(df::AbstractDataFrame, required_columns)
     req_syms = Symbol.(required_columns)
-    present = Set(names(df))
+    present = Set(Symbol.(names(df)))
     return [c for c in req_syms if !(c in present)]
 end
 
@@ -147,15 +147,24 @@ function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
             continue
         end
 
-        parsed = tryparse.(Float64, xs)
+        parsed = map(xs) do v
+            if ismissing(v) || v == ""
+                missing
+            else
+                p = tryparse(Float64, String(v))
+                p === nothing ? missing : p
+            end
+        end
+
         n_numeric_valid = count(!ismissing, parsed)
 
         if n_numeric_valid / n_valid >= num_threshold
-            nums = Float64.(coalesce.(parsed, NaN))
             if all(ismissing(v) || isinteger(v) for v in parsed)
-                out[!, col] = convert(Vector{Union{Missing, Int}}, round.(Int, nums))
+                # Colonne essentiellement entière (avec éventuellement des missings)
+                out[!, col] = [ismissing(v) ? missing : round(Int, v) for v in parsed]
             else
-                out[!, col] = convert(Vector{Union{Missing, Float64}}, nums)
+                # Colonne numérique générale (Float64, avec éventuellement des missings)
+                out[!, col] = [ismissing(v) ? missing : Float64(v) for v in parsed]
             end
             continue
         end

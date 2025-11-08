@@ -17,6 +17,16 @@ struct RemoteRatio    <: NormalizeField end
 struct JobTitle       <: NormalizeField end
 struct CountryCode    <: NormalizeField end
 
+# Internal helper to resolve a column name whether DataFrame uses Symbols or Strings
+function _resolve_col(df::AbstractDataFrame, col::Symbol)
+    for name in names(df)
+        if name == col || String(name) == String(col)
+            return name
+        end
+    end
+    throw(ArgumentError("Column $(col) not found"))
+end
+
 # Generic API
 """
     normalize!(df, field::NormalizeField, args...; kwargs...)
@@ -65,14 +75,12 @@ Les valeurs non reconnues sont conservées telles quelles (pas écrasées),
 pour ne rien perdre par rapport aux données brutes.
 """
 function normalize!(df::AbstractDataFrame, ::EmploymentType; col::Symbol = :employment_type)
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for EmploymentType normalization"))
-    end
+    colname = _resolve_col(df, col)
 
-    df[!, col] = CategoricalArray(
+    df[!, colname] = CategoricalArray(
         [v === missing ? missing :
          get(EMPLOYMENT_TYPE_MAPPING, String(v), String(v))
-         for v in df[!, col]];
+         for v in df[!, colname]];
         ordered = false,
     )
     return df
@@ -88,13 +96,11 @@ Crée un facteur ordonné avec niveaux du plus petit au plus grand (S < M < L).
 Les valeurs sont traitées comme des codes "S", "M", "L" déjà présentes dans le dataset.
 """
 function normalize!(df::AbstractDataFrame, ::CompanySize, ::UptoDown; col::Symbol = :company_size)
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for CompanySize normalization"))
-    end
+    colname = _resolve_col(df, col)
 
-    raw = string.(df[!, col])
+    raw = string.(df[!, colname])
     levels = ["S", "M", "L"]
-    df[!, col] = CategoricalArray(raw; levels = levels, ordered = true)
+    df[!, colname] = CategoricalArray(raw; levels = levels, ordered = true)
     return df
 end
 
@@ -104,13 +110,11 @@ end
 Crée un facteur ordonné avec niveaux du plus grand au plus petit (L < M < S).
 """
 function normalize!(df::AbstractDataFrame, ::CompanySize, ::DowntoUp; col::Symbol = :company_size)
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for CompanySize normalization"))
-    end
+    colname = _resolve_col(df, col)
 
-    raw = string.(df[!, col])
+    raw = string.(df[!, colname])
     levels = ["L", "M", "S"]
-    df[!, col] = CategoricalArray(raw; levels = levels, ordered = true)
+    df[!, colname] = CategoricalArray(raw; levels = levels, ordered = true)
     return df
 end
 
@@ -131,14 +135,12 @@ Ex:
 function normalize!(df::AbstractDataFrame, ::RemoteRatio;
                     col::Symbol = :remote_ratio,
                     allowed = (0, 50, 100))
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for RemoteRatio normalization"))
-    end
+    colname = _resolve_col(df, col)
 
-    vals = df[!, col]
+    vals = df[!, colname]
     allowed_float = Float64.(allowed)
 
-    df[!, col] = map(vals) do v
+    df[!, colname] = map(vals) do v
         if v === missing
             missing
         else
@@ -169,11 +171,9 @@ des tables plus riches sans changer le code.
 function normalize!(df::AbstractDataFrame, ::JobTitle;
                     col::Symbol = :job_title,
                     mapping::AbstractDict{<:AbstractString,<:AbstractString} = JOB_TITLE_MAPPING)
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for JobTitle normalization"))
-    end
+    colname = _resolve_col(df, col)
 
-    df[!, col] = map(df[!, col]) do v
+    df[!, colname] = map(df[!, colname]) do v
         if v === missing
             missing
         else
@@ -213,15 +213,13 @@ function normalize!(df::AbstractDataFrame, ::CountryCode;
                     col::Symbol = :country,
                     mapping = COUNTRY_CODE_MAPPING,
                     region_col::Union{Symbol,Nothing} = nothing)
-    if !(col in names(df))
-        throw(ArgumentError("Column $(col) not found for CountryCode normalization"))
-    end
+    colname = _resolve_col(df, col)
 
     n = nrow(df)
     codes = Vector{Union{Missing,String}}(undef, n)
     regions = region_col === nothing ? nothing : Vector{Union{Missing,String}}(undef, n)
 
-    for (i, v) in pairs(df[!, col])
+    for (i, v) in pairs(df[!, colname])
         if v === missing
             codes[i] = missing
             if regions !== nothing
@@ -235,17 +233,16 @@ function normalize!(df::AbstractDataFrame, ::CountryCode;
                     get(mapping, uppercase(s),
                         get(mapping, lowercase(s), nothing)))
 
-            code::Union{Missing,String}
-            if m === nothing
+            code = if m === nothing
                 # Pas trouvé: on garde la valeur d'origine
-                code = s
+                s
             elseif m isa String
-                code = m
+                m
             elseif m isa NamedTuple
                 # Support optionnel si un mapping plus riche fournit (:code, :region)
-                code = haskey(m, :code) ? String(m.code) : s
+                haskey(m, :code) ? String(m.code) : s
             else
-                code = String(m)
+                String(m)
             end
 
             codes[i] = code
@@ -257,7 +254,7 @@ function normalize!(df::AbstractDataFrame, ::CountryCode;
         end
     end
 
-    df[!, col] = codes
+    df[!, colname] = codes
     if region_col !== nothing
         df[!, region_col] = regions
     end

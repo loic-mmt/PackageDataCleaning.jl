@@ -62,7 +62,7 @@ end
     df = DataFrame(remote_ratio = [20, 40, 80, 0, 50, 100, missing])
     normalize!(df, RemoteRatio())
 
-    @test df.remote_ratio == [0, 50, 100, 0, 50, 100, missing]
+    @test isequal(df.remote_ratio, [0, 50, 100, 0, 50, 100, missing])
 end
 
 @testset "normalize! RemoteRatio - colonne manquante" begin
@@ -113,7 +113,7 @@ end
     df = DataFrame(country = ["US", "FR", "UnknownLand", missing])
     normalize!(df, CountryCode(); region_col = :region)
 
-    @test :region in names(df)
+    @test any(n -> n == :region || n == "region", names(df))
     @test nrow(df) == length(df.region)
     @test isequal(df.region[4], missing)
 
