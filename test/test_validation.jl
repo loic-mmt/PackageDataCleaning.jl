@@ -59,3 +59,44 @@ end
     # Vérifie que c est numérique (car majoritairement nombres)
     @test eltype(df2.c) <: Union{Missing, Float64}
 end
+
+
+# deduplicate_rows
+@testset "deduplicate_rows DropAll basic" begin
+    df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+                   b = ["a", "b", "b", "c", "d", "d", "e"])
+
+    # On déduplique par la colonne :a uniquement
+    out = deduplicate_rows(df, DropAll(); by = [:a])
+
+    @test size(out) == (2, 2)
+    @test all(out.a .== [2, 4])  # seules les valeurs uniques 2 et 4
+end
+
+@testset "deduplicate_rows KeepFirst basic" begin
+    df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+                   b = ["a", "b", "b", "c", "d", "d", "e"])
+
+    out = deduplicate_rows(df, KeepFirst(); by = [:a])
+
+    @test size(out) == (4, 2)
+    @test out.a == [1, 2, 3, 4]
+end
+
+@testset "deduplicate_rows DropAll with blind_rows" begin
+    df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+                   b = ["a", "b", "b", "c", "d", "d", "e"])
+
+    out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
+
+    @test out.a == [1, 2, 4]
+end
+
+@testset "deduplicate_rows DropAll with blind_values" begin
+    df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+                   b = ["a", "b", "b", "c", "d", "d", "e"])
+
+    out = deduplicate_rows(df, DropAll(); by = [:a], blind_col = :a, blind_values = [3])
+
+    @test sort(out.a) == [2, 3, 3, 3, 4]
+end
