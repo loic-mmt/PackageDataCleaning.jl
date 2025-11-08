@@ -2,5 +2,7 @@ using PackageDataCleaning
 using Test
 
 @testset "PackageDataCleaning.jl" begin
-    # Write your tests here.
+    include("test_normalization.jl")
+    include("test_validation.jl")
+
 end

@@ -1,6 +1,7 @@
 # Tests for load_raw_csv
 using Test, PackageDataCleaning
 using DataFrames
+using CategoricalArrays
 
 @test_throws ArgumentError load_raw_csv("fichier_qui_existe_pas.csv")
 @testset "load_raw_csv basic" begin
