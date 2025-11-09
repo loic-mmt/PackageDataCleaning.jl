@@ -4,6 +4,7 @@ using CSV, DataFrames, CategoricalArrays
 include("validation.jl")
 include("mappings.jl")
 include("normalization.jl")
+include("currency.jl")
 
 export load_raw_csv,
        validate_schema,
@@ -20,6 +21,10 @@ export load_raw_csv,
        DowntoUp,
        RemoteRatio,
        JobTitle,
-       CountryCode
+       CountryCode,
+       UseExchangeRates,
+       convert_currency_to_usd!,
+
+
 
 end
