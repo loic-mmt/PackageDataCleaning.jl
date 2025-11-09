@@ -20,6 +20,24 @@
 #' @return Le data.frame avec les NA imputés
 """
 
+# 1. Déterminer les colonnes à traiter
+#    - si cols == nothing: toutes
+#    - sinon: seulement celles dans cols
+#    - retirer celles de exclude
+
+# 2. Pour chaque colname:
+#      v = df[!, colname]
+#      if eltype(v) <: Union{Missing, Real}
+#          impute_column!(v, num_method)
+#      elseif eltype(v) <: Union{Missing, Bool}
+#          impute_column!(v, bool_method)
+#      elseif eltype(v) <: Union{Missing, AbstractString} || v isa CategoricalArray
+#          impute_column!(v, cat_method)
+#      else
+#          impute_column!(v, some_default_method) # ou ne rien faire
+#      end
+#
+# 3. Retourner df
 
 abstract type ImputeMethod end
 
