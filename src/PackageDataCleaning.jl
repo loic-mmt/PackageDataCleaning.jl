@@ -24,6 +24,7 @@ export load_raw_csv,
        CountryCode,
        UseExchangeRates,
        convert_currency_to_usd!,
-       convert_currency_to_usd
+       convert_currency_to_usd,
+       CurrencyConversionMode
     
 end
