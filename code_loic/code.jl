@@ -140,3 +140,10 @@ function impute_column!(col::AbstractVector{<:Union{Missing, Bool}}, ::BoolMajor
     # TODO: compter true/false, choisir le plus fréquent
     return col
 end
+
+
+"Fallback : types non gérés -> on ne touche pas."
+function impute_column!(col::AbstractVector, method::ImputeMethod)
+    # Par exemple : ne rien faire, ou éventuellement un @info si verbose global
+    return col
+end
