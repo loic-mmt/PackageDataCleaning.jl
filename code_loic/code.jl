@@ -113,3 +113,23 @@ function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, m::NumConst
     # TODO: utiliser m.value
     return col
 end
+
+
+"Imputation catégorielle par modalité majoritaire."
+function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, ::CatMode)
+    # TODO: trouver la valeur la plus fréquente (hors missing) et l'utiliser
+    return col
+end
+
+"Imputation catégorielle par constante."
+function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, m::CatConstant)
+    # TODO: remplacer missing par m.value
+    return col
+end
+
+"Imputation catégorielle par nouveau niveau."
+function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, m::CatNewLevel)
+    # TODO: remplacer missing par m.label
+    # Si col est CategoricalArray, penser à ajouter le niveau
+    return col
+end
