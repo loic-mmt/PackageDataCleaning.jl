@@ -44,3 +44,42 @@ end
 "Stratégie booléenne / logique"
 abstract type BoolImputeMethod <: ImputeMethod end
 struct BoolMajority <: BoolImputeMethod end
+
+
+"""
+    impute_missing!(df; 
+        cols = nothing,
+        exclude = Symbol[],
+        num_method::NumericImputeMethod = NumMedian(),
+        cat_method::CategoricalImputeMethod = CatMode(),
+        bool_method::BoolImputeMethod = BoolMajority(),
+        verbose::Bool = false)
+
+Impute les valeurs manquantes dans `df` en place.
+"""
+function impute_missing!(df::AbstractDataFrame; 
+    cols = nothing,
+    exclude = Symbol[],
+    num_method::NumericImputeMethod = NumMedian(),
+    cat_method::CategoricalImputeMethod = CatMode(),
+    bool_method::BoolImputeMethod = BoolMajority(),
+    verbose::Bool = false,
+)
+    # TODO:
+    # 1. Déterminer les colonnes cibles (en fonction de cols/exclude)
+    # 2. Boucler sur chaque colonne cible:
+    #      - router vers impute_column!(...) en fonction du type + méthode
+    # 3. Si verbose, afficher un résumé
+    return df
+end
+
+"""
+    impute_missing(df; kwargs...) -> DataFrame
+
+Version non mutante : renvoie une copie imputée.
+"""
+function impute_missing(df::AbstractDataFrame; kwargs...)
+    df2 = copy(df)
+    impute_missing!(df2; kwargs...)
+    return df2
+end
