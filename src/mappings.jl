@@ -147,6 +147,14 @@ const JOB_TITLE_MAPPING = Dict(
 # Employment type normalization
 ###############################
 
+const EMPLOYMENT_TYPEs = (
+    "Full-time",
+    "Part-time",
+    "Contract",
+    "Freelance",
+)
+
+
 const EMPLOYMENT_TYPE_MAPPING = Dict(
     "FT" => "Full-time",
     "PT" => "Part-time",
@@ -298,6 +306,12 @@ const SIZE_LEVELS = [
     "Large",
 ]
 
+const SIZE = [
+    "S",
+    "M",
+    "L",
+]
+
 ########################
 # Experience level mapping
 ########################
@@ -307,4 +321,11 @@ const EXPERIENCE_MAPPING = Dict(
     "MI" => "Mid-level",
     "SE" => "Senior-level",
     "EX" => "Executive-level",
+)
+
+const EXPERIENCE = (
+    "EN",
+    "MI",
+    "SE",
+    "EX",
 )
