@@ -83,3 +83,15 @@ function impute_missing(df::AbstractDataFrame; kwargs...)
     impute_missing!(df2; kwargs...)
     return df2
 end
+
+
+"""
+    impute_column!(col, method)
+
+Impute une seule colonne en place selon la méthode donnée.
+Cette fonction est spécialisée par type d'éléments et type de méthode.
+"""
+function impute_column!(col, method::ImputeMethod)
+    # TODO: par défaut, soit ne rien faire, soit throw pour types non gérés.
+    return col
+end
