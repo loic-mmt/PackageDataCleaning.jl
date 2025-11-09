@@ -95,3 +95,21 @@ function impute_column!(col, method::ImputeMethod)
     # TODO: par défaut, soit ne rien faire, soit throw pour types non gérés.
     return col
 end
+
+"Imputation numérique par médiane."
+function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, ::NumMedian)
+    # TODO: calculer la médiane des valeurs non-missing et remplacer les missing.
+    return col
+end
+
+"Imputation numérique par moyenne."
+function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, ::NumMean)
+    # TODO
+    return col
+end
+
+"Imputation numérique avec constante donnée."
+function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, m::NumConstant)
+    # TODO: utiliser m.value
+    return col
+end
