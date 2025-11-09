@@ -19,3 +19,28 @@
 #' @param verbose afficher un résumé par colonne. Défaut: TRUE.
 #' @return Le data.frame avec les NA imputés
 """
+
+
+abstract type ImputeMethod end
+
+"Stratégies numériques"
+abstract type NumericImputeMethod    <: ImputeMethod end
+struct NumMedian   <: NumericImputeMethod end
+struct NumMean     <: NumericImputeMethod end
+struct NumConstant <: NumericImputeMethod
+    value::Float64
+end
+
+"Stratégies catégorielles"
+abstract type CategoricalImputeMethod <: ImputeMethod end
+struct CatMode      <: CategoricalImputeMethod end
+struct CatConstant  <: CategoricalImputeMethod
+    value::String
+end
+struct CatNewLevel  <: CategoricalImputeMethod
+    label::String
+end
+
+"Stratégie booléenne / logique"
+abstract type BoolImputeMethod <: ImputeMethod end
+struct BoolMajority <: BoolImputeMethod end
