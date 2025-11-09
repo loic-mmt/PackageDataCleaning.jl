@@ -133,3 +133,10 @@ function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, m
     # Si col est CategoricalArray, penser à ajouter le niveau
     return col
 end
+
+
+"Imputation pour colonnes booléennes: valeur majoritaire."
+function impute_column!(col::AbstractVector{<:Union{Missing, Bool}}, ::BoolMajority)
+    # TODO: compter true/false, choisir le plus fréquent
+    return col
+end
