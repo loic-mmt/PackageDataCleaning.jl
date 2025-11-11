@@ -43,7 +43,7 @@ const EXCHANGE_RATES = DataFrame(
     ]
 )
 
-# Helper function (comme _resolve_col dans ton code)
+
 function _resolve_col(df::AbstractDataFrame, col::Symbol)
     for name in names(df)
         if name == col || String(name) == String(col)
@@ -103,17 +103,6 @@ Convertit les salaires en USD en utilisant des taux de change historiques.
 - Si aucun taux n'est trouvé, la valeur USD sera `missing`
 - Les `missing` dans salary ou currency sont propagés
 
-# Exemple
-```julia
-df = DataFrame(
-    salary = [50000, 60000, 70000],
-    salary_currency = ["EUR", "GBP", "USD"],
-    work_year = [2022, 2022, 2023]
-)
-
-convert_currency_to_usd!(df, UseExchangeRates())
-# df.salary_in_usd contiendra les montants convertis
-```
 """
 function convert_currency_to_usd!(df::AbstractDataFrame, ::UseExchangeRates;
                                   salary_col::Symbol = :salary,
