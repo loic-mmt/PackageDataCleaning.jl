@@ -23,8 +23,8 @@ Margot- convert_currency_to_usd — Convertir salaires en USD et vérifier la co
 Loïc- impute_missing — Imputer num/cat selon une méthode choisie.
 
 # Qualité des données & valeurs aberrantes
-Margot- validate_ranges — Vérifier contraintes (salary > 0, remote_ratio ∈ [0,100], années plausibles).
-Loïc- cap_outliers_salary — Traiter les outliers (winsorisation/écrêtage).
+Arthur- validate_ranges — Vérifier contraintes (salary > 0, remote_ratio ∈ [0,100], années plausibles).
+Arthur- cap_outliers_salary — Traiter les outliers (winsorisation/écrêtage).
 
 # Orchestration
 Margot- cleaning_pipeline — Orchestrer tout le flux de nettoyage de bout en bout.
