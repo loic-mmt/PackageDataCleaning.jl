@@ -137,7 +137,6 @@ abstract type SchemaMode end
 struct StrictMode <: SchemaMode end
 struct LenientMode <: SchemaMode end
 
-"Mode strict : erreur si des colonnes manquent, sinon `true`."
 function validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
     missing = _missing_columns(df, required_columns)
     if isempty(missing)
@@ -148,11 +147,9 @@ function validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
     end
 end
 
-"Mode tolérant : renvoie la liste des colonnes manquantes (éventuellement vide)."
 function validate_schema(df::AbstractDataFrame, required_columns, ::LenientMode)
     return _missing_columns(df, required_columns)
 end
-
 
 function validate_schema(df::AbstractDataFrame, required_columns; strict::Bool=true)
     if strict
@@ -161,7 +158,6 @@ function validate_schema(df::AbstractDataFrame, required_columns; strict::Bool=t
         return validate_schema(df, required_columns, LenientMode())
     end
 end
-
 
 validate_schema(df::AbstractDataFrame, required_columns::Tuple; strict::Bool=true) =
     validate_schema(df, collect(required_columns); strict=strict)
