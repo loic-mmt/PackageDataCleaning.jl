@@ -19,6 +19,88 @@ Exemple d'utilisation :
 """
 
 
+#validate_schema
+"""
+Exemple d'utiliation :
+
+df = DataFrame(a = [1], b = [2])
+validate_schema(df, [:a, :b, :c])
+# ArgumentError -> Missing required columns: c
+
+validate_schema(df, [:a, :b, :c]; strict=false)
+# missing c
+"""
+
+#standardize_colnames!
+"""
+Exemple d'utilisation : 
+df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])
+standardize_colnames!(df)
+names(df) 
+# "my_col_1", "salaire"
+"""
+
+#enforce_types
+"""
+Exemple d'utilisation :
+df = DataFrame(
+        a = ["1", "2", "3", "x", missing],
+        b = ["chat", "chien", "chat", "souris", "chien"],
+        c = ["", " ", "4", "5", "6"]
+)
+df2 = enforce_types(df)
+
+isa(df2.a, CategoricalVector)
+#True
+isa(df2.b, CategoricalVector)
+#True
+eltype(df2.c)  <: Union{Missing, Int, Float64}
+#True
+"""
+
+#deduplicate_rows
+"""
+Exemples d'utilisation : 
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a]) # On déduplique par la colonne :a uniquement
+size(out)
+# 2, 2
+
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, KeepFirst(); by = [:a])
+
+size(out)
+# 4, 2
+
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
+sort(out.a)
+# 2, 3, 3, 3, 4
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

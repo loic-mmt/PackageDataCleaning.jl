@@ -59,9 +59,18 @@ Vérifie que toutes les colonnes requises sont présentes dans le DataFrame.
     - `true`  -> lève un `ArgumentError` s'il manque des colonnes.
     - `false` -> renvoie le vecteur des colonnes manquantes.
 
-Cette fonction illustre le multiple dispatch : le comportement réel est déterminé
+Cette fonction utilise le multiple dispatch : le comportement réel est déterminé
 par le type du troisième argument (`StrictMode` vs `LenientMode`), pas seulement
 par une condition sur un booléen.
+
+Exemple d'utiliation :
+
+        df = DataFrame(a = [1], b = [2])
+        validate_schema(df, [:a, :b, :c])
+        # ArgumentError -> Missing required columns: c
+
+        validate_schema(df, [:a, :b, :c]; strict=false)
+        # missing c
 """
 
 abstract type SchemaMode end
@@ -114,6 +123,13 @@ Transforme les noms de colonnes en snake_case :
 - caractères non alphanumériques remplacés par `_`
 - underscores multiples réduits à un seul
 - underscores en début/fin supprimés
+
+Exemple d'utilisation : 
+
+        df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])
+        standardize_colnames!(df)
+        names(df) 
+        # "my_col_1", "salaire"
 """
 function standardize_colnames!(df)
     old = names(df)
@@ -135,7 +151,7 @@ end
 
 Applique `standardize_colnames!` à chaque DataFrame d'une collection.
 
-Cette deuxième méthode du même nom illustre le multiple dispatch : Julia choisit
+Cette deuxième méthode utilise le multiple dispatch : Julia choisit
 automatiquement entre la version "un seul DataFrame" et la version "collection
 de DataFrames" selon le type de l'argument.
 """
@@ -146,7 +162,23 @@ function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     return dfs
 end
 
+"""
 
+Exemple d'utilisation :
+df = DataFrame(
+        a = ["1", "2", "3", "x", missing],
+        b = ["chat", "chien", "chat", "souris", "chien"],
+        c = ["", " ", "4", "5", "6"]
+)
+df2 = enforce_types(df)
+
+isa(df2.a, CategoricalVector)
+#True
+isa(df2.b, CategoricalVector)
+#True
+eltype(df2.c)  <: Union{Missing, Int, Float64}
+#True
+"""
 
 function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
     out = copy(df)
@@ -216,6 +248,31 @@ Supprime ou conserve les doublons selon le mode choisi.
 - `blind_rows` : indices de lignes à ne jamais supprimer (protégées).
 - `blind_col` / `blind_values` :
     - si spécifiés, toute ligne dont `df[!, blind_col]` est dans `blind_values` est protégée.
+
+Exemples d'utilisation : 
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a]) # On déduplique par la colonne :a uniquement
+size(out)
+# 2, 2
+
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, KeepFirst(); by = [:a])
+
+size(out)
+# 4, 2
+
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
+sort(out.a)
+# 2, 3, 3, 3, 4
 """
 
 abstract type DedupMode end
