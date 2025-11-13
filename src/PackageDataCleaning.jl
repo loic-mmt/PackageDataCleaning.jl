@@ -1,6 +1,6 @@
 module PackageDataCleaning
 
-import DataFrames, nrow, names
+import DataFrames: AbstractDataFrame, nrow, names
 using CategoricalArrays
 using CSV
 

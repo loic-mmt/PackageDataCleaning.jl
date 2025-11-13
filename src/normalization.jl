@@ -2,8 +2,6 @@
 # normalize_company_size, normalize_remote_ratio,
 # normalize_job_title, normalize_country_codes
 
-import DataFrames: AbstractDataFrame, nrow, names
-using CategoricalArrays
 
 
 abstract type NormalMode end
