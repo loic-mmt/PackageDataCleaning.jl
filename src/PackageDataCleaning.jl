@@ -1,6 +1,9 @@
 module PackageDataCleaning
 
-using CSV, DataFrames, CategoricalArrays
+import DataFrames, nrow, names
+using CategoricalArrays
+using CSV
+
 include("validation.jl")
 include("mappings.jl")
 include("utils.jl")
