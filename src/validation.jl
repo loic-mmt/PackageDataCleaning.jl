@@ -1,48 +1,56 @@
 # load_raw_csv, validate_schema, standardize_colnames, enforce_types, deduplicate_rows
 
 
+"""
+    load_raw_csv(path::AbstractString; delim=',', kwargs...) -> DataFrame
+    load_raw_csv(io::IO; delim=',', kwargs...) -> DataFrame
+
+Charge un CSV brut dans un `DataFrame`.
+
+Cette fonction propose deux variantes :
+
+- `load_raw_csv(path::AbstractString; ...)` : lit un fichier CSV à partir d'un chemin sur le disque.
+- `load_raw_csv(io::IO; ...)` : lit un CSV à partir d'un flux IO déjà ouvert (par ex. `IOBuffer`, fichier ouvert).
+
+# Arguments
+
+- `path` : chemin vers le fichier CSV.
+- `io`   : flux IO déjà ouvert contenant des données CSV.
+- `delim` : séparateur de colonnes (par défaut `','`).
+- `kwargs...` : options passées à `CSV.read` (par ex. `ignorerepeated=true`, `missingstring=["","NA"]`).
+
+# Exceptions
+
+- Lève un `ArgumentError` si `path` ne correspond à aucun fichier existant.
+
+# Exemples
+
+Lecture classique depuis un fichier sur le disque :
+
+```julia
+df = load_raw_csv("data.csv")
+```
+
+Lecture depuis un texte CSV en mémoire :
+
+```julia
+text = \"\"\"
+col1,col2
+1,2
+3,4
+\"\"\"
+
+buf = IOBuffer(text)
+df2 = load_raw_csv(buf)
+```
+"""
 function load_raw_csv end
-"""
-    load_raw_csv(path; delim=',', kwargs...) -> DataFrame
-
-Charge un CSV brut dans un DataFrame.
-
-- path: chemin vers le fichier CSV.
-- delim: séparateur (par défaut "','").
-- kwargs...: options passées à CSV.read (ex: 'ignorerepeated=true', 'missingstring=["","NA"]').
-
-Lève un ArgumentError si le fichier n'existe pas.
-"""
 
 function load_raw_csv(path::AbstractString; delim = ',', kwargs...)
     isfile(path) || throw(ArgumentError("CSV file not found at: $path"))
     return CSV.read(path, DataFrame; delim=delim, kwargs...)
 end
 
-"""
-
-    load_raw_csv(io::IO; delim=',', kwargs...) -> DataFrame
-
-Variante pour lire depuis un flux IO déjà ouvert (ex: `IOBuffer`, fichier ouvert).
-Utilise la même logique que `load_raw_csv(path::AbstractString, ...)`.
-Cette fonction peut être utilisée dans le cas ou nous avons un fichier ouvert stocké dnas la RAM de l'ordinateur. 
-
-Voici des exemples de cas où cette fonction peut être utile:
-    •   Pour les tests : tester la fonction de lecture CSV sans créer de fichiers.
-	•	Pour des données générées : si on génères du texte CSV dans le code, on peut directement le mettre dans un IOBuffer et l'utiliser ici.
-	•	Pour d'autres cas : lecture depuis une API et autre.
-
-Exemple d'utilisation :
-
-        text = "
-        col1,col2
-        1,2
-        3,4
-        "
-
-        buf = IOBuffer(text)    
-        df = load_raw_csv(buf) 
-"""
 function load_raw_csv(io::IO; delim=',', kwargs...)
     return CSV.read(io, DataFrame; delim=delim, kwargs...)
 end
