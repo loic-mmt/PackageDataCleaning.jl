@@ -3,9 +3,10 @@ module PackageDataCleaning
 using CSV, DataFrames, CategoricalArrays
 include("validation.jl")
 include("mappings.jl")
+include("utils.jl")
 include("normalization.jl")
 include("currency.jl")
-include("utils.jl")
+
 
 export load_raw_csv,
        validate_schema,
