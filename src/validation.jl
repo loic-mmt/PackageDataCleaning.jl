@@ -364,61 +364,60 @@ end
 
 
 
-# deduplicate_rows
+
 
 """
-    deduplicate_rows(df, mode::DedupMode; by=names(df),
-                     blind_rows = Int[],
-                     blind_col::Union{Symbol,Nothing} = nothing,
-                     blind_values = nothing) -> DataFrame
+    _dedup_key(df::AbstractDataFrame, i::Int, by) -> Tuple
 
-Supprime ou conserve les doublons selon le mode choisi.
+Construit la clé de déduplication pour la ligne `i` d'un `DataFrame` en
+utilisant les colonnes listées dans `by`.
 
-- `df` : DataFrame d'entrée (non muté).
-- `mode` : stratégie typée :
-    - `KeepFirst()` : conserve la première occurrence, supprime les doublons suivants.
-    - `DropAll()`   : supprime **toutes** les lignes appartenant à un groupe dupliqué (ne garde que les lignes uniques).
-- `by` : colonnes utilisées pour définir l'égalité entre lignes (par défaut toutes les colonnes).
-- `blind_rows` : indices de lignes à ne jamais supprimer (protégées).
-- `blind_col` / `blind_values` :
-    - si spécifiés, toute ligne dont `df[!, blind_col]` est dans `blind_values` est protégée.
+Cette fonction est interne et utilisée par `deduplicate_rows` pour identifier
+les groupes de lignes dupliquées.
 
-Exemples d'utilisation : 
-df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
-               b = ["a", "b", "b", "c", "d", "d", "e"])
+# Arguments
 
-out = deduplicate_rows(df, DropAll(); by = [:a]) # On déduplique par la colonne :a uniquement
-size(out)
-# 2, 2
+- `df` : `AbstractDataFrame` d'entrée.
+- `i`  : indice de ligne (1-based).
+- `by` : collection de noms de colonnes (souvent un vecteur de `Symbol`).
 
+# Retour
 
-df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
-               b = ["a", "b", "b", "c", "d", "d", "e"])
-
-out = deduplicate_rows(df, KeepFirst(); by = [:a])
-
-size(out)
-# 4, 2
-
-
-df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
-               b = ["a", "b", "b", "c", "d", "d", "e"])
-
-out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
-sort(out.a)
-# 2, 3, 3, 3, 4
+- Un `Tuple` contenant les valeurs de la ligne `i` pour chaque colonne de `by`.
 """
-
-abstract type DedupMode end
-struct KeepFirst <: DedupMode end      # garde la première occurrence
-struct DropAll   <: DedupMode end      # ne garde que les clés (valeurs) apparaissant une seule fois
-
-
-# construit la clé de déduplication pour une ligne
 @inline _dedup_key(df::AbstractDataFrame, i::Int, by) =
     ntuple(j -> df[i, by[j]], length(by))
 
-# indique si une ligne est "protégée" (jamais supprimée)
+
+
+    
+
+"""
+    _is_protected(df::AbstractDataFrame, i::Int,
+                  blind_rows::AbstractVector{Int},
+                  blind_col::Union{Symbol,Nothing},
+                  blind_values) -> Bool
+
+Indique si la ligne `i` d'un `DataFrame` est "protégée" contre la suppression
+dans le cadre de `deduplicate_rows`.
+
+Une ligne est considérée comme protégée si :
+
+- son indice `i` appartient à `blind_rows`, ou
+- `blind_col` et `blind_values` sont fournis et `df[i, blind_col] ∈ blind_values`.
+
+# Arguments
+
+- `df`          : `AbstractDataFrame` d'entrée.
+- `i`           : indice de ligne (1-based).
+- `blind_rows`  : vecteur d’indices de lignes à ne jamais supprimer.
+- `blind_col`   : nom de colonne utilisé pour définir des lignes protégées (ou `nothing`).
+- `blind_values`: collection de valeurs déclenchant la protection (ou `nothing`).
+
+# Retour
+
+- `true` si la ligne `i` doit être considérée comme protégée, `false` sinon.
+"""
 function _is_protected(df::AbstractDataFrame, i::Int,
                        blind_rows::AbstractVector{Int},
                        blind_col::Union{Symbol,Nothing},
@@ -433,7 +432,90 @@ function _is_protected(df::AbstractDataFrame, i::Int,
     return false
 end
 
-"Mode KeepFirst: conserve la 1ère occurrence, supprime les doublons suivants (sauf lignes protégées)."
+
+
+
+"""
+    deduplicate_rows(df::AbstractDataFrame, mode::DedupMode;
+                     by = names(df),
+                     blind_rows::AbstractVector{Int} = Int[],
+                     blind_col::Union{Symbol,Nothing} = nothing,
+                     blind_values = nothing) -> DataFrame
+
+    deduplicate_rows(df::AbstractDataFrame, ::KeepFirst; kwargs...) -> DataFrame
+    deduplicate_rows(df::AbstractDataFrame, ::DropAll;   kwargs...) -> DataFrame
+
+Supprime des lignes dupliquées dans un `DataFrame` selon une stratégie typée
+(`DedupMode`) et des règles de protection optionnelles.
+
+Deux modes sont proposés :
+
+- `KeepFirst()` : conserve la **première** occurrence de chaque clé, supprime les doublons suivants ;
+- `DropAll()`   : supprime **toutes** les lignes appartenant à une clé dupliquée (ne garde que les clés uniques).
+
+# Arguments
+
+- `df` : `AbstractDataFrame` d'entrée. Il n'est **pas** modifié ; une copie filtrée est retournée.
+- `mode` : instance de `DedupMode` :
+    - `KeepFirst()` ou
+    - `DropAll()`.
+- `by` :
+    - collection de noms de colonnes (`Vector{Symbol}`, `Vector{String}`, etc.) définissant la *clé* de déduplication ;
+    - par défaut `names(df)` (toutes les colonnes).
+- `blind_rows` :
+    - vecteur d’indices de lignes à **protéger** (elles ne sont jamais supprimées) ;
+    - ces lignes comptent néanmoins dans les clés déjà vues.
+- `blind_col` / `blind_values` :
+    - si `blind_col` est un `Symbol` et `blind_values` une collection de valeurs,
+      toute ligne telle que `df[i, blind_col] ∈ blind_values` est protégée ;
+    - protection prioritaire : une ligne protégée n’est jamais supprimée, même si sa clé est dupliquée.
+
+# Retour
+
+- Un nouveau `DataFrame` contenant uniquement les lignes conservées selon :
+    - la clé définie par `by` ;
+    - le mode (`KeepFirst` / `DropAll`) ;
+    - les règles de protection (`blind_rows`, `blind_col`, `blind_values`).
+
+# Notes
+
+- La fonction ne modifie pas `df` : elle construit un masque logique `keep` et renvoie `df[keep, :]`.
+- Les lignes protégées (`blind_rows` / `blind_col` + `blind_values`) sont toujours présentes dans le résultat,
+  même si leur clé apparaît plusieurs fois.
+- En mode `DropAll`, les clés ayant plus d’une occurrence sont supprimées **sauf** pour les lignes protégées.
+
+# Exemples
+
+Déduplication en supprimant tous les groupes dupliqués :
+
+```julia
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a])  # On déduplique uniquement par :a
+size(out)
+# (2, 2)  # seules les lignes avec a == 2 ou 4 sont conservées
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, KeepFirst(); by = [:a])
+size(out)
+# (4, 2)  # a == 1, 2, 3, 4 (1ère occurrence de chaque clé)
+
+df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
+               b = ["a", "b", "b", "c", "d", "d", "e"])
+
+out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
+sort(out.a)
+# [2, 3, 3, 3, 4]  # la ligne 1 (a == 1) est protégée, les autres clés uniques sont conservées
+```
+
+"""
+function deduplicate_rows end
+abstract type DedupMode end
+struct KeepFirst <: DedupMode end      # garde la première occurrence
+struct DropAll   <: DedupMode end      # ne garde que les clés (valeurs) apparaissant une seule fois
 function deduplicate_rows(df::AbstractDataFrame, ::KeepFirst;
                           by = names(df),
                           blind_rows::AbstractVector{Int} = Int[],
@@ -463,7 +545,6 @@ function deduplicate_rows(df::AbstractDataFrame, ::KeepFirst;
     return df[keep, :]
 end
 
-"Mode DropAll: ne garde que les lignes dont la clé n'apparaît qu'une seule fois (sauf lignes protégées)."
 function deduplicate_rows(df::AbstractDataFrame, ::DropAll;
                           by = names(df),
                           blind_rows::AbstractVector{Int} = Int[],
