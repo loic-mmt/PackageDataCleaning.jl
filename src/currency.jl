@@ -43,16 +43,6 @@ const EXCHANGE_RATES = DataFrame(
     ]
 )
 
-
-function _resolve_col(df::AbstractDataFrame, col::Symbol)
-    for name in names(df)
-        if name == col || String(name) == String(col)
-            return name
-        end
-    end
-    throw(ArgumentError("Column $(col) not found"))
-end
-
 """
     convert_currency_to_usd!(df, mode::CurrencyConversionMode, args...; kwargs...)
 
