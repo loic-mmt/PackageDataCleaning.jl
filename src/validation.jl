@@ -136,7 +136,7 @@ missing_cols = validate_schema(df, [:a, :b, :c]; strict=false)
 # [:c]
 
 ```
-See also [`missing_cols`](@ref)
+See also [`_missing_columns`](@ref)
 
 """
 function validate_schema end
