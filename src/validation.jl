@@ -56,42 +56,86 @@ function load_raw_csv(io::IO; delim=',', kwargs...)
 end
 
 
-
 """
-    validate_schema(df, required_columns; strict=true)
+    _missing_columns(df::AbstractDataFrame, required_columns) -> Vector{Symbol}
 
-Vérifie que toutes les colonnes requises sont présentes dans le DataFrame.
+Calcule la liste des colonnes manquantes dans un `DataFrame` par rapport à un
+ensemble de colonnes requises.
 
-- `df` : DataFrame à contrôler.
-- `required_columns` : collection de `Symbol` ou `String` représentant les noms attendus.
-- `strict` :
-    - `true`  -> lève un `ArgumentError` s'il manque des colonnes.
-    - `false` -> renvoie le vecteur des colonnes manquantes.
+Cette fonction est interne et utilisée par `validate_schema` pour factoriser
+la logique de détection des colonnes manquantes.
 
-Cette fonction utilise le multiple dispatch : le comportement réel est déterminé
-par le type du troisième argument (`StrictMode` vs `LenientMode`), pas seulement
-par une condition sur un booléen.
+# Arguments
 
-Exemple d'utiliation :
+- `df` : `AbstractDataFrame` dont on veut vérifier la présence des colonnes.
+- `required_columns` : collection de noms de colonnes attendues (`Vector{Symbol}`,
+  `Vector{String}`, `Tuple`, etc.). Tous les noms sont convertis en `Symbol`
+  en interne.
 
-        df = DataFrame(a = [1], b = [2])
-        validate_schema(df, [:a, :b, :c])
-        # ArgumentError -> Missing required columns: c
+# Retour
 
-        validate_schema(df, [:a, :b, :c]; strict=false)
-        # missing c
+- Un `Vector{Symbol}` contenant les noms des colonnes requises qui ne sont pas
+  présentes dans `df`. Le vecteur est vide si toutes les colonnes sont présentes.
 """
-
-abstract type SchemaMode end
-struct StrictMode <: SchemaMode end
-struct LenientMode <: SchemaMode end
-
-"Calcule la liste des colonnes manquantes (interne)."
 function _missing_columns(df::AbstractDataFrame, required_columns)
     req_syms = Symbol.(required_columns)
     present = Set(Symbol.(names(df)))
     return [c for c in req_syms if !(c in present)]
 end
+
+
+"""
+    validate_schema(df::AbstractDataFrame, required_columns; strict=true)
+    validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
+    validate_schema(df::AbstractDataFrame, required_columns, ::LenientMode)
+
+Vérifie que toutes les colonnes requises sont présentes dans le `DataFrame`.
+
+Cette fonction supporte deux modes de validation :
+
+- `StrictMode` (par défaut via `strict=true`) : lève une erreur si des colonnes manquent.
+- `LenientMode` (via `strict=false` ou appel explicite) : renvoie la liste des colonnes manquantes.
+
+# Arguments
+
+- `df` : `DataFrame` à contrôler.
+- `required_columns` : collection de noms de colonnes attendues (`Vector{Symbol}`, `Vector{String}`, `Tuple`, etc.).
+- `strict` :
+    - `true`  : utilise `StrictMode()` et lève un `ArgumentError` s'il manque des colonnes.
+    - `false` : utilise `LenientMode()` et renvoie un `Vector{Symbol}` des colonnes manquantes.
+
+# Retour
+
+- En mode strict (`strict=true` ou `StrictMode()`):
+    - renvoie `true` si toutes les colonnes sont présentes ;
+    - lève un `ArgumentError` sinon.
+- En mode tolérant (`strict=false` ou `LenientMode()`):
+    - renvoie un `Vector{Symbol}` (éventuellement vide) contenant les colonnes manquantes.
+
+# Notes
+
+- Les noms de colonnes sont normalisés en `Symbol` en interne.
+- Une surchage `validate_schema(df, required_columns::Tuple; strict=true)` est fournie pour plus de confort : le tuple est simplement converti en vecteur.
+
+# Exemples
+
+Mode strict (erreur si colonnes manquantes) :
+
+```julia
+df = DataFrame(a = [1], b = [2])
+
+validate_schema(df, [:a, :b]; strict=true)
+# true
+
+validate_schema(df, [:a, :b, :c]; strict=true)
+# ArgumentError: Missing required columns: c
+
+"""
+function validate_schema end
+
+abstract type SchemaMode end
+struct StrictMode <: SchemaMode end
+struct LenientMode <: SchemaMode end
 
 "Mode strict : erreur si des colonnes manquent, sinon `true`."
 function validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
