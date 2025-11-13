@@ -5,12 +5,14 @@ include("validation.jl")
 include("mappings.jl")
 include("normalization.jl")
 include("currency.jl")
+include("utils.jl")
 
 export load_raw_csv,
        validate_schema,
        standardize_colnames!,
        enforce_types,
        deduplicate_rows,
+       _resolve_col,
        DropAll,
        KeepFirst,
        normalize,
