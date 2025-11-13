@@ -130,6 +130,14 @@ validate_schema(df, [:a, :b]; strict=true)
 validate_schema(df, [:a, :b, :c]; strict=true)
 # ArgumentError: Missing required columns: c
 
+df = DataFrame(a = [1], b = [2])
+
+missing_cols = validate_schema(df, [:a, :b, :c]; strict=false)
+# [:c]
+
+```
+See also [`missing_cols`](@ref)
+
 """
 function validate_schema end
 
