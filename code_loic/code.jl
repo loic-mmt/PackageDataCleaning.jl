@@ -1,3 +1,27 @@
+
+
+""""Cette fonction peut être utilisée dans le cas ou nous avons un fichier ouvert stocké dnas la RAM de l'ordinateur. 
+Voici des exemples de cas où cette fonction peut être utile:
+    •   Pour les tests : tester la fonction de lecture CSV sans créer de fichiers.
+	•	Pour des données générées : si on génères du texte CSV dans le code, on peut directement le mettre dans un IOBuffer et l'utiliser ici.
+	•	Pour d'autres cas : lecture depuis une API et autre.
+
+Exemple d'utilisation :
+
+        text = "
+        col1,col2
+        1,2
+        3,4
+        "
+
+        buf = IOBuffer(text)    
+        df = load_raw_csv(buf) 
+"""
+
+
+
+
+
 # impute_missing
 
 #equivalent en R
