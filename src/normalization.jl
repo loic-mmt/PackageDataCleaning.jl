@@ -15,17 +15,7 @@ struct RemoteRatio    <: NormalizeField end
 struct JobTitle       <: NormalizeField end
 struct CountryCode    <: NormalizeField end
 
-# Internal helper to resolve a column name whether DataFrame uses Symbols or Strings
-function _resolve_col(df::AbstractDataFrame, col::Symbol)
-    for name in names(df)
-        if name == col || String(name) == String(col)
-            return name
-        end
-    end
-    throw(ArgumentError("Column $(col) not found"))
-end
 
-# Generic API
 """
     normalize!(df, field::NormalizeField, args...; kwargs...)
 
