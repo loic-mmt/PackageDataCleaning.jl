@@ -173,20 +173,53 @@ validate_schema(df::AbstractDataFrame, required_columns::Tuple; strict::Bool=tru
 
 
 """
-    standardize_colnames!(df)
+    standardize_colnames!(df::AbstractDataFrame)
+    standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
 
-Transforme les noms de colonnes en snake_case :
-- minuscules
-- caractères non alphanumériques remplacés par `_`
-- underscores multiples réduits à un seul
-- underscores en début/fin supprimés
+Normalise les noms de colonnes en `snake_case` pour un ou plusieurs `DataFrame`.
 
-Exemple d'utilisation : 
+Les transformations appliquées à chaque nom de colonne sont :
 
-        df = DataFrame("  My Col (1) " => [1,2], "SALAIRE (€)" => [10,20])
-        standardize_colnames!(df)
-        names(df) 
-        # "my_col_1", "salaire"
+- passage en minuscules ;
+- remplacement des caractères non alphanumériques par `_` ;
+- réduction des underscores multiples à un seul ;
+- suppression des underscores en début et fin.
+
+# Arguments
+
+- `df`  : un `AbstractDataFrame` dont on veut standardiser les noms de colonnes.
+- `dfs` : un vecteur de `AbstractDataFrame` ; la transformation est appliquée à chacun.
+
+# Retour
+
+- En entrée unique : renvoie le `DataFrame` modifié (les noms de colonnes sont mis à jour **en place**).
+- En entrée collection : renvoie la collection `dfs`, après modification en place de chaque élément.
+
+# Notes
+
+- La fonction est mutante (`!`) : les noms de colonnes sont modifiés directement dans les `DataFrame`.
+- Les nouveaux noms sont renvoyés sous forme de `Symbol`.
+- Utile à combiner avec des fonctions comme [`enforce_types`] pour travailler sur des schémas de données plus propres.
+
+# Exemples
+
+Standardisation des colonnes d'un seul `DataFrame` :
+
+```julia
+df = DataFrame("  My Col (1) " => [1, 2], "SALAIRE (€)" => [10, 20])
+
+standardize_colnames!(df)
+names(df)
+# Symbol[:my_col_1, :salaire]
+df1 = DataFrame("My Col" => [1, 2])
+df2 = DataFrame("Other Col" => [3, 4])
+
+dfs = [df1, df2]
+standardize_colnames!(dfs)
+
+names(df1)  # [:my_col]
+names(df2)  # [:other_col]
+```
 """
 function standardize_colnames!(df)
     old = names(df)
@@ -203,15 +236,6 @@ function standardize_colnames!(df)
     return df
 end
 
-"""
-    standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
-
-Applique `standardize_colnames!` à chaque DataFrame d'une collection.
-
-Cette deuxième méthode utilise le multiple dispatch : Julia choisit
-automatiquement entre la version "un seul DataFrame" et la version "collection
-de DataFrames" selon le type de l'argument.
-"""
 function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     for df in dfs
         standardize_colnames!(df)
