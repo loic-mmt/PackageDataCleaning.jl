@@ -243,24 +243,77 @@ function standardize_colnames!(dfs::AbstractVector{<:AbstractDataFrame})
     return dfs
 end
 
-"""
 
-Exemple d'utilisation :
+
+
+
+"""
+    enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20) -> DataFrame
+
+Tente d'inférer et d'appliquer des types plus adaptés pour les colonnes d'un `DataFrame`
+à partir de valeurs textuelles ou mixtes.
+
+Pour chaque colonne :
+
+- si le type est déjà numérique ou catégoriel (`Number`, `CategoricalValue`), elle est laissée telle quelle ;
+- sinon, la fonction essaie d'abord de la convertir en colonne numérique ;
+- si la colonne n'est pas suffisamment "numérique", elle peut être convertie en facteur (`CategoricalVector`)
+  si le nombre de modalités est raisonnable ;
+- dans tous les autres cas, la colonne est nettoyée en une colonne de chaînes (`String`) avec `missing`.
+
+# Arguments
+
+- `df` : `DataFrame` d'entrée. Il n'est **pas** modifié ; une copie est retournée.
+- `num_threshold` (par défaut `0.9`) :
+    - fraction minimale de valeurs non vides pouvant être converties en nombre (`Float64`)
+      pour considérer la colonne comme numérique ;
+- `max_factor_levels` (par défaut `20`) :
+    - nombre maximal de valeurs distinctes non vides pour convertir une colonne non numérique
+      en `CategoricalVector`.
+
+# Retour
+
+- Un **nouveau** `DataFrame` dont les colonnes ont été éventuellement converties :
+    - colonnes numériques : `Union{Missing, Int}` ou `Union{Missing, Float64}` ;
+    - colonnes catégorielles : `CategoricalVector{String}` (avec `missing` possible) ;
+    - autres colonnes : `Vector{Union{Missing, String}}` nettoyé (trim + chaînes vides traitées).
+
+# Détails de l'inférence
+
+- Les valeurs `missing` ou les chaînes vides (`""`, `" "`, etc.) sont ignorées dans les statistiques
+  (ratio numérique, nombre de modalités).
+- Si la proportion de valeurs convertibles en `Float64` parmi les valeurs non vides est
+  ≥ `num_threshold` :
+    - si toutes les valeurs numériques sont entières, la colonne est transformée en entiers
+      (`Union{Missing, Int}`) ;
+    - sinon, en `Union{Missing, Float64}`.
+- Si la colonne n'est pas majoritairement numérique, mais que le nombre de modalités non vides
+  est ≤ `max_factor_levels`, elle est convertie en `CategoricalVector`.
+- Sinon, elle est conservée comme colonne de chaînes nettoyées.
+
+# Exemples
+
+Inférence de types sur des colonnes textuelles :
+
+```julia
 df = DataFrame(
-        a = ["1", "2", "3", "x", missing],
-        b = ["chat", "chien", "chat", "souris", "chien"],
-        c = ["", " ", "4", "5", "6"]
+    a = ["1", "2", "3", "x", missing],
+    b = ["chat", "chien", "chat", "souris", "chien"],
+    c = ["", " ", "4", "5", "6"]
 )
+
 df2 = enforce_types(df)
 
 isa(df2.a, CategoricalVector)
-#True
-isa(df2.b, CategoricalVector)
-#True
-eltype(df2.c)  <: Union{Missing, Int, Float64}
-#True
-"""
+# true (colonne peu numérique + peu de modalités)
 
+isa(df2.b, CategoricalVector)
+# true (texte avec peu de modalités)
+
+eltype(df2.c) <: Union{Missing, Int, Float64}
+# true (colonne majoritairement numérique)
+```
+"""
 function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
     out = copy(df)
     for col in names(out)
