@@ -4,35 +4,35 @@
 validate_range(data::SalaryTbl) -> DataFrame
 Verify that in all the variables that can be verfied values are plausibles.
 - data: le SalaryTbl à tester
-- df: dataframe contenant le résulat du test (Booléen), pour chaque variable (char).
+- df: dataframe contenant le résulat du test (Booléen), pour chaque variable.
 Permet de voir quelle variable contient l'erreur si il y en a une.
 """
 
 
 function validate_range(data::SalaryTbl)
-    valid_mask = []
+    valid_mask = Bool[]
     push!(valid_mask, all(x -> x in EMPLOYMENT_TYPES, skipmissing(data[!, employment_type])))
     push!(valid_mask, all(x -> x in EXPERIENCE, skipmissing(data[!, experience_level])))
     push!(valid_mask, all(x -> x >0, skipmissing(data[!, salary])))
     push!(valid_mask, all(x -> x >0, skipmissing(data[!, salary_in_usd])))
     push!(valid_mask, all(x -> 0 <= x && x <= 100, skipmissing(data[!, remote_ratio])))
     push!(valid_mask, all(x -> x in SIZE, skipmissing(data[!, company_size])))
-    df = DataFrame(variables = ['employment_type', 'experience_level', 'salary', 'salary_in_usd', 'remote_ratio', 'company_size'], valid_mask = valid_mask)
+    df = DataFrame(variables = ["employment_type", "experience_level", "salary", "salary_in_usd", "remote_ratio", "company_size"], valid_mask = valid_mask)
     return df
 end
 
 """
-validate_range(data::DataFrame) -> DataFrame
+validate_range(data::DataFrame, vars_a_tester::AbstractVector, tests_a_effectuer::AbstractVector{Function}) -> DataFrame
 Verify that in all the variables that can be verfied values are plausibles.
 - data: le DataFrame à tester
 - vars_a_tester: vecteur des variables à tester
-- tests_a_effectuer: vecteur des tests à appliquer aux variables (fonctions de la forme x->x )
+- tests_a_effectuer: vecteur des tests à appliquer aux variables (fonctions qui renvoient un booléen)
 - df: dataframe contenant le résulat du test (Booléen), pour chaque variable (char).
 Permet de voir quelle variable contient l'erreur si il y en a une.
 """
 
-function validate_range(data::DataFrame, vars_a_tester::AbstractVector, tests_a_effectuer::AbstractVector)
-    valid_mask = []
+function validate_range(data::DataFrame, vars_a_tester::AbstractVector, tests_a_effectuer::AbstractVector{Function})
+    valid_mask = Bool[]
     for index in range length(vars_a_tester)
         push!(valid_mask, all(tests_a_effectuer[index], skipmissing(data[!, vars_a_tester[index]])))
     end
@@ -40,7 +40,16 @@ function validate_range(data::DataFrame, vars_a_tester::AbstractVector, tests_a_
     return df
 end
 
-function validate_range(var::AbstractVector, test::AbstractVector)
+"""
+validate_range(var::AbstractVector, test::AbstractVector{Function})-> DataFrame
+Verify that in all the variables that can be verfied values are plausibles.
+- var: vecteur à tester
+- test: fonction qui renvoie un booléen pour tester le vecteur
+- vect: booléen value which indicate is the test as passed.
+Permet de voir quelle variable contient l'erreur si il y en a une.
+"""
+
+function validate_range(var::AbstractVector, test::Function)
     vect = [var, all(test, skipmissing(var))]
     return vect
 end
