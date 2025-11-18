@@ -13,7 +13,13 @@ enforce_types
 deduplicate_rows
 ```
 
-## Fonctions de nettoyage
+## Fonctions de normalisation
+```@docs
+UptoDown
+normalize!
+normalize
+
+```
 
 ## Autres fonctions utiles
 ```@docs
