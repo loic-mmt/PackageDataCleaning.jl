@@ -116,7 +116,71 @@ sur cette copie, puis renvoie le résultat.
 
 - Utile lorsque l’on souhaite chaîner plusieurs transformations sans muter les
   données sources.
+
+# Exemples
+
+Normalisation en place du type de contrat :
+
+```julia
+df = DataFrame(employment_type = ["FT", "PT", "CT", "FL", "XX", missing])
+normalize!(df, EmploymentType())
+
+df.employment_type isa CategoricalArray
+isequal(df.employment_type[6], missing)    # missing conservé
+df.employment_type[5] == "XX"              # valeur inconnue conservée telle quelle
+```
+
+Tailles d’entreprise ordonnées (du plus petit au plus grand, puis l’inverse) :
+
+```julia
+df = DataFrame(company_size = ["S", "M", "L", "M"])
+normalize!(df, CompanySize(), UptoDown())
+levels(df.company_size) == ["S", "M", "L"]
+isordered(df.company_size) == true
+
+df2 = DataFrame(company_size = ["S", "M", "L", "S"])
+normalize!(df2, CompanySize(), DowntoUp())
+levels(df2.company_size) == ["L", "M", "S"]
+```
+
+Projection d’un ratio de télétravail sur un ensemble discret :
+
+```julia
+df = DataFrame(remote_ratio = [20, 40, 80, 0, 50, 100, missing])
+normalize!(df, RemoteRatio())  # allowed = (0, 50, 100) par défaut
+
+isequal(df.remote_ratio, [0, 50, 100, 0, 50, 100, missing])
+```
+
+Normalisation des intitulés de poste :
+
+```julia
+df = DataFrame(job_title = ["Senior Data Scientist", "sr data scientist", "Unknown title", missing])
+normalize!(df, JobTitle())
+
+df.job_title[3] == "Unknown title"   # valeur inconnue conservée
+isequal(df.job_title[4], missing)    # missing conservé
+```
+
+Normalisation des pays / codes et ajout d’une région :
+
+```julia
+df = DataFrame(country = ["US", "FR", "UnknownLand", missing])
+normalize!(df, CountryCode(); region_col = :region)
+
+any(n -> n == :region || n == "region", names(df))
+nrow(df) == length(df.region)
+isequal(df.region[4], missing)
+isequal(df.region[3], missing)       # UnknownLand -> région manquante
+```
+
+# Notes
+
+- Si aucune méthode spécialisée ne correspond à la combinaison de types fournie,
+  un `ArgumentError` est levé pour indiquer qu’il n’existe pas de méthode adaptée.
+- Voir également [`normalize`] pour la version non mutante qui travaille sur une copie.
 """
+
 function normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
     df2 = copy(df)
     normalize!(df2, field, args...; kwargs...)
