@@ -144,39 +144,6 @@ est sélectionnée par multiple dispatch.
 
 - Le même `DataFrame`, modifié en place.
 
-# Notes
-
-- Si aucune méthode spécialisée ne correspond à la combinaison de types fournie,
-  un `ArgumentError` est levé pour indiquer qu’il n’existe pas de méthode adaptée.
-- Voir également [`normalize`] pour la version non mutante qui travaille sur une copie.
-"""
-function normalize!(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
-    throw(ArgumentError("No matching normalization method for $(typeof(field)) with given arguments"))
-end
-
-
-"""
-    normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...) -> DataFrame
-
-Version non mutante de [`normalize!`] : crée une copie de `df`, applique `normalize!`
-sur cette copie, puis renvoie le résultat.
-
-# Arguments
-
-- `df`    : `AbstractDataFrame` d’entrée (non modifié).
-- `field` : type de champ indiquant la normalisation à appliquer
-            (`EmploymentType()`, `CompanySize()`, `RemoteRatio()`, `JobTitle()`, `CountryCode()`, etc.).
-- `args...` / `kwargs...` : paramètres supplémentaires passés à la méthode `normalize!`
-  correspondante.
-
-# Retour
-
-- Un nouveau `DataFrame` contenant la version normalisée de `df`.
-
-# Notes
-
-- Utile lorsque l’on souhaite chaîner plusieurs transformations sans muter les
-  données sources.
 
 # Exemples
 
@@ -240,8 +207,36 @@ isequal(df.region[3], missing)       # UnknownLand -> région manquante
 - Si aucune méthode spécialisée ne correspond à la combinaison de types fournie,
   un `ArgumentError` est levé pour indiquer qu’il n’existe pas de méthode adaptée.
 - Voir également [`normalize`] pour la version non mutante qui travaille sur une copie.
+# Notes
 """
+function normalize!(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
+    throw(ArgumentError("No matching normalization method for $(typeof(field)) with given arguments"))
+end
 
+
+"""
+    normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...) -> DataFrame
+
+Version non mutante de [`normalize!`] : crée une copie de `df`, applique `normalize!`
+sur cette copie, puis renvoie le résultat.
+
+# Arguments
+
+- `df`    : `AbstractDataFrame` d’entrée (non modifié).
+- `field` : type de champ indiquant la normalisation à appliquer
+            (`EmploymentType()`, `CompanySize()`, `RemoteRatio()`, `JobTitle()`, `CountryCode()`, etc.).
+- `args...` / `kwargs...` : paramètres supplémentaires passés à la méthode `normalize!`
+  correspondante.
+
+# Retour
+
+- Un nouveau `DataFrame` contenant la version normalisée de `df`.
+
+# Notes
+
+- Utile lorsque l’on souhaite chaîner plusieurs transformations sans muter les
+  données sources.
+"""
 function normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
     df2 = copy(df)
     normalize!(df2, field, args...; kwargs...)

@@ -15,7 +15,15 @@ deduplicate_rows
 
 ## Fonctions de normalisation
 ```@docs
+NormalMode
 UptoDown
+DowntoUp
+NormalizeField
+EmploymentType
+CompanySize
+RemoteRatio
+JobTitle
+CountryCode
 normalize!
 normalize
 
