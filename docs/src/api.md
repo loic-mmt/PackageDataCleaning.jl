@@ -26,9 +26,13 @@ JobTitle
 CountryCode
 normalize!
 normalize
-
 ```
 
+## Fonctions de taux de change
+```@docs
+convert_currency_to_usd!
+convert_currency_to_usd
+```
 ## Autres fonctions utiles
 ```@docs
 load_raw_csv
