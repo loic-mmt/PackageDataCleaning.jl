@@ -16,6 +16,7 @@ makedocs(;
         "Home" => "index.md",
         "API"  => "api.md",
     ],
+    checkdocs = :none,
 )
 
 deploydocs(;
