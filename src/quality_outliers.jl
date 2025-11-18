@@ -67,12 +67,12 @@ function winsorize(vect::AbstractVector; lower_quantile=0.05, upper_quantile=0.9
 end
 
 function winsorize(data::AbstractDataFrame; lower_quantile=0.05, upper_quantile=0.95)
-    lower = quantile(vect, lower_quantile)
-    upper = quantile(vect, upper_quantile)
     for col_name in names(data)
         col = data[!, col_name]
         if eltype(col) <: Real && length(col) > 1
-            data[!, col_name] <- max(min(col, upper), lower)
+            lower = quantile(col, lower_quantile)
+            upper = quantile(col, upper_quantile)
+            data[!, col_name] = max(min(col, upper), lower)
         end
     end
     return(data)
