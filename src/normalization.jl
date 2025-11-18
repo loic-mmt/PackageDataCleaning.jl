@@ -4,15 +4,76 @@
 
 
 
+"""
+    NormalMode
+
+Type abstrait pour représenter un mode d’ordonnancement dans certaines
+normalisations (par ex. `CompanySize()`).
+"""
 abstract type NormalMode end
+
+"""
+    UptoDown <: NormalMode
+
+Mode d’ordonnancement "du plus petit au plus grand" (ex: `S < M < L`).
+Utilisé avec `CompanySize()` dans `normalize!`.
+"""
 struct UptoDown  <: NormalMode end
+
+"""
+    DowntoUp <: NormalMode
+
+Mode d’ordonnancement "du plus grand au plus petit" (ex: `L < M < S`).
+Utilisé avec `CompanySize()` dans `normalize!`.
+"""
 struct DowntoUp  <: NormalMode end
 
+"""
+    NormalizeField
+
+Type abstrait pour représenter un "champ métier" normalisable
+(type de contrat, taille d’entreprise, pays, etc.).
+"""
 abstract type NormalizeField end
+
+"""
+    EmploymentType <: NormalizeField
+
+Champ métier pour normaliser une colonne de type de contrat
+(ex: codes `FT`, `PT`, `CT`, `FL`).
+"""
 struct EmploymentType <: NormalizeField end
+
+"""
+    CompanySize <: NormalizeField
+
+Champ métier pour normaliser une colonne de taille d’entreprise
+(ex: `"S"`, `"M"`, `"L"`).
+"""
 struct CompanySize    <: NormalizeField end
+
+"""
+    RemoteRatio <: NormalizeField
+
+Champ métier pour normaliser un ratio de télétravail en valeurs discrètes
+(ex: `0`, `50`, `100`).
+"""
 struct RemoteRatio    <: NormalizeField end
+
+"""
+    JobTitle <: NormalizeField
+
+Champ métier pour harmoniser les intitulés de poste via un dictionnaire
+de correspondance.
+"""
 struct JobTitle       <: NormalizeField end
+
+"""
+    CountryCode <: NormalizeField
+
+Champ métier pour convertir des pays / codes bruts en codes ISO2 cohérents
+(et éventuellement une région).
+"""
 struct CountryCode    <: NormalizeField end
 
 
