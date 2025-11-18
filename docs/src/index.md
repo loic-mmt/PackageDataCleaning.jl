@@ -37,4 +37,6 @@ validate_schema(df, [:a, :b]; strict=true)
 **Introduction** : vue d’ensemble et exemples simples.
 - **API** : description détaillée de chaque fonction (types, arguments, etc.).
 
+Consulte la page `API` pour la liste complète des fonctions disponibles.
+
 Documentation for [PackageDataCleaning](https://github.com/loic-mmt/PackageDataCleaning.jl).
