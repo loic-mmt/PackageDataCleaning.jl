@@ -1,6 +1,6 @@
 # convert_currency_to_usd
 
-import DataFrames: AbstractDataFrame, nrow, leftjoin!
+import DataFrames: AbstractDataFrame, nrow, leftjoin!, select!, Not, rename!
 using DataFrames
 
 # Type abstrait pour les conversions de devises
@@ -11,55 +11,108 @@ struct UseExchangeRates <: CurrencyConversionMode end
 
 """
     convert_currency_to_usd!(df, mode::CurrencyConversionMode, args...; kwargs...)
+    convert_currency_to_usd(df, mode::CurrencyConversionMode, args...; kwargs...) -> DataFrame
+    convert_currency_to_usd!(df, UseExchangeRates(); kwargs...)
 
-API générique pour la conversion de devises en USD.
-Le comportement exact dépend du `mode` passé (multiple dispatch).
+API pour la conversion de devises en USD.
 
-Modes disponibles:
-- `UseExchangeRates()` : utilise une table de taux de change historiques
+Cette fonction propose trois variantes :
 
-Version mutante qui modifie `df` sur place.
+- `convert_currency_to_usd!(df, mode::CurrencyConversionMode, ...)` : API générique mutante (dispatch sur le mode).
+- `convert_currency_to_usd(df, mode::CurrencyConversionMode, ...)` : version non mutante qui renvoie une copie.
+- `convert_currency_to_usd!(df, UseExchangeRates(); ...)` : implémentation concrète avec taux de change historiques.
+
+# Arguments
+
+- `df` : `AbstractDataFrame` contenant les données de salaires.
+- `mode` : instance de `CurrencyConversionMode` définissant la stratégie de conversion.
+  Modes disponibles :
+  - `UseExchangeRates()` : utilise une table de taux de change historiques.
+
+Pour `UseExchangeRates()`, arguments optionnels :
+- `salary_col::Symbol` : colonne contenant le salaire brut (par défaut `:salary`).
+- `currency_col::Symbol` : colonne contenant le code devise ISO 4217 (ex: "EUR", "GBP") (par défaut `:salary_currency`).
+- `year_col::Symbol` : colonne contenant l'année de travail (par défaut `:work_year`).
+- `usd_col::Symbol` : colonne où écrire le salaire converti en USD (par défaut `:salary_in_usd`).
+- `exchange_rates::AbstractDataFrame` : DataFrame avec colonnes `year`, `currency`, `rate` (par défaut `EXCHANGE_RATES`).
+
+# Comportement
+
+Version mutante (`convert_currency_to_usd!`) :
+- Modifie `df` **en place** en ajoutant une colonne de salaires convertis en USD.
+- Joint les taux de change selon la devise et l'année via `leftjoin!`.
+- Calcule `salary * rate` pour obtenir le montant en USD.
+- Si aucun taux n'est trouvé pour une combinaison devise/année, la valeur USD sera `missing`.
+- Les valeurs `missing` dans `salary_col` ou `currency_col` sont propagées dans `usd_col`.
+- Vérifie l'existence des colonnes requises avant traitement via `_resolve_col`.
+- Crée des colonnes temporaires `_temp_currency` et `_temp_year` pour la jointure.
+- Nettoie automatiquement les colonnes temporaires après conversion.
+
+Version non mutante (`convert_currency_to_usd`) :
+- Crée une copie de `df`, applique `convert_currency_to_usd!` dessus et la renvoie.
+- Le `DataFrame` original reste inchangé.
+
+# Retour
+
+- Version mutante : renvoie le `DataFrame` modifié (par convention).
+- Version non mutante : renvoie un nouveau `DataFrame` avec la colonne convertie.
+
+# Exceptions
+
+- `ArgumentError` : si aucune méthode n'est définie pour le mode fourni (API générique).
+- `ArgumentError` : si une colonne requise (`salary_col`, `currency_col`, `year_col`) n'existe pas dans `df` (UseExchangeRates).
+
+# Notes
+
+- Les noms de colonnes sont résolus en interne via `_resolve_col` pour gérer les variantes `Symbol` et `String`.
+- La table `EXCHANGE_RATES` (définie dans le module de mapping) contient les taux pour 41 devises de 2020 à 2023.
+- USD vers USD utilise un taux de 1.0 (pas de conversion effective).
+- Les colonnes temporaires `_temp_currency`, `_temp_year`, et `rate` sont automatiquement supprimées.
+
+# Exemples
+
+Version mutante (modifie en place) :
+```julia
+df = DataFrame(
+    salary = [50000, 60000],
+    salary_currency = ["EUR", "USD"],
+    work_year = [2022, 2022]
+)
+
+convert_currency_to_usd!(df, UseExchangeRates())
+# df contient maintenant une colonne :salary_in_usd
+```
+
+Version non mutante (crée une copie) :
+```julia
+df = DataFrame(
+    salary = [50000, 60000],
+    salary_currency = ["EUR", "USD"],
+    work_year = [2022, 2022]
+)
+
+df_usd = convert_currency_to_usd(df, UseExchangeRates())
+# df reste inchangé, df_usd contient :salary_in_usd
+```
+
+See also [`EXCHANGE_RATES`](@ref), [`UseExchangeRates`](@ref), [`_resolve_col`](@ref)
 """
+function convert_currency_to_usd! end
+function convert_currency_to_usd end
+
+# Implémentation de l'API générique (mutante)
 function convert_currency_to_usd!(df::AbstractDataFrame, mode::CurrencyConversionMode, args...; kwargs...)
     throw(ArgumentError("No matching conversion method for $(typeof(mode)) with given arguments"))
 end
 
-"""
-    convert_currency_to_usd(df, mode::CurrencyConversionMode, args...; kwargs...) -> DataFrame
-
-Version non mutante de `convert_currency_to_usd!`:
-crée une copie de `df`, applique `convert_currency_to_usd!` dessus et la renvoie.
-"""
+# Implémentation de l'API générique (non mutante)
 function convert_currency_to_usd(df::AbstractDataFrame, mode::CurrencyConversionMode, args...; kwargs...)
     df2 = copy(df)
     convert_currency_to_usd!(df2, mode, args...; kwargs...)
     return df2
 end
 
-"""
-    convert_currency_to_usd!(df, UseExchangeRates();
-                             salary_col = :salary,
-                             currency_col = :salary_currency,
-                             year_col = :work_year,
-                             usd_col = :salary_in_usd,
-                             exchange_rates = EXCHANGE_RATES)
-
-Convertit les salaires en USD en utilisant des taux de change historiques.
-
-# Arguments
-- `salary_col`: colonne contenant le salaire brut
-- `currency_col`: colonne contenant le code devise (ex: "EUR", "GBP")
-- `year_col`: colonne contenant l'année de travail
-- `usd_col`: colonne où écrire le salaire converti en USD
-- `exchange_rates`: DataFrame avec colonnes `year`, `currency`, `rate`
-
-# Comportement
-- Joint les taux de change selon la devise et l'année
-- Calcule `salary * rate` pour obtenir le montant en USD
-- Si aucun taux n'est trouvé, la valeur USD sera `missing`
-- Les `missing` dans salary ou currency sont propagés
-
-"""
+# Implémentation concrète : UseExchangeRates
 function convert_currency_to_usd!(df::AbstractDataFrame, ::UseExchangeRates;
                                   salary_col::Symbol = :salary,
                                   currency_col::Symbol = :salary_currency,
