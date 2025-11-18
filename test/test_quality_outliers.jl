@@ -200,15 +200,3 @@ end
         @test result[2] == true
     end
 end
-
-# Fonction pour exécuter tous les tests
-function run_all_tests()
-    @testset "Package validate_range" begin
-        include("test_validate_range.jl")
-    end
-end
-
-# Exécutez les tests si le fichier est exécuté directement
-if abspath(PROGRAM_FILE) == @__FILE__
-    run_all_tests()
-end
