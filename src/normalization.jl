@@ -17,28 +17,105 @@ struct CountryCode    <: NormalizeField end
 
 
 """
-    normalize!(df, field::NormalizeField, args...; kwargs...)
+    normalize!(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
+    normalize!(df, EmploymentType(); col = :employment_type)
+    normalize!(df, CompanySize(), UptoDown(); col = :company_size)
+    normalize!(df, CompanySize(), DowntoUp(); col = :company_size)
+    normalize!(df, RemoteRatio(); col = :remote_ratio, allowed = (0, 50, 100))
+    normalize!(df, JobTitle(); col = :job_title, mapping = JOB_TITLE_MAPPING)
+    normalize!(df, CountryCode(); col = :country,
+               mapping = COUNTRY_CODE_MAPPING,
+               region_col::Union{Symbol,Nothing} = nothing)
 
-Normalise `df` sur place en fonction du type de `field`:
+Applique une opération de normalisation en place sur `df` en fonction du type
+de champ métier (`field`) et, éventuellement, d'un mode supplémentaire.
 
-- `EmploymentType` : normalisation des types de contrat.
-- `CompanySize`    : normalisation de la taille d'entreprise (ordre paramétrable).
-- `RemoteRatio`    : projection vers un ensemble discret de valeurs.
-- `JobTitle`       : harmonisation des intitulés de poste via dictionnaire.
-- `CountryCode`    : harmonisation des pays vers des codes ISO2 (+ région optionnelle).
+Cette fonction est le point d’entrée générique : pour chaque combinaison de `field`
+et d’arguments (`args...` / `kwargs...`), une méthode spécialisée de `normalize!`
+est sélectionnée par multiple dispatch.
 
-Le détail du comportement est entièrement déterminé par le multiple dispatch:
-chaque combinaison de types a sa propre méthode spécialisée.
+# Variantes supportées
+
+- `normalize!(df, EmploymentType(); col = :employment_type)`  
+  Normalise une colonne de type de contrat. Les codes suivants sont mappés :  
+  `FT -> "Full-time"`, `PT -> "Part-time"`, `CT -> "Contract"`, `FL -> "Freelance"`.  
+  La colonne est convertie en `CategoricalArray` non ordonnée.  
+  Les valeurs non reconnues sont conservées telles quelles.
+
+- `normalize!(df, CompanySize(), UptoDown(); col = :company_size)`  
+  Crée un facteur ordonné représentant la taille d’entreprise du plus petit au
+  plus grand (`S < M < L`). La colonne est traitée comme composée de codes `"S"`,
+  `"M"`, `"L"` et convertie en `CategoricalArray{String}` ordonnée avec les niveaux
+  `["S", "M", "L"]`.
+
+- `normalize!(df, CompanySize(), DowntoUp(); col = :company_size)`  
+  Crée un facteur ordonné représentant la taille d’entreprise du plus grand au
+  plus petit (`L < M < S`) avec les niveaux `["L", "M", "S"]`.
+
+- `normalize!(df, RemoteRatio(); col = :remote_ratio, allowed = (0, 50, 100))`  
+  Projette les valeurs d’un ratio de télétravail vers l’ensemble discret `allowed`
+  en prenant la valeur la plus proche. Par défaut : `(0, 50, 100)`.  
+  Les valeurs `missing` sont conservées.
+
+- `normalize!(df, JobTitle(); col = :job_title, mapping = JOB_TITLE_MAPPING)`  
+  Harmonise les intitulés de poste via un dictionnaire de correspondance
+  `brut -> catégorie canonique`. La logique essaie la clé exacte, puis en minuscules
+  si besoin. Les valeurs non trouvées dans le mapping sont conservées.
+
+- `normalize!(df, CountryCode(); col = :country,
+               mapping = COUNTRY_CODE_MAPPING,
+               region_col = nothing)`  
+  Convertit des pays / codes bruts en codes ISO2 cohérents à l’aide d’un dictionnaire
+  externe. Si `region_col` est fourni, une colonne supplémentaire est remplie avec
+  la région correspondante via `REGION_MAP`. Lorsque le mapping échoue, la valeur
+  brute est conservée pour éviter de perdre de l’information.
+
+# Arguments
+
+- `df`    : `AbstractDataFrame` à normaliser (modifié en place).
+- `field` : type de champ indiquant la normalisation à appliquer
+            (`EmploymentType()`, `CompanySize()`, `RemoteRatio()`, `JobTitle()`,
+             `CountryCode()`, etc.).
+- `args...` / `kwargs...` : paramètres supplémentaires spécifiques à chaque type
+  de normalisation (par exemple `col`, `allowed`, `mapping`, `region_col`, etc.).
+
+# Retour
+
+- Le même `DataFrame`, modifié en place.
+
+# Notes
+
+- Si aucune méthode spécialisée ne correspond à la combinaison de types fournie,
+  un `ArgumentError` est levé pour indiquer qu’il n’existe pas de méthode adaptée.
+- Voir également [`normalize`] pour la version non mutante qui travaille sur une copie.
 """
 function normalize!(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
     throw(ArgumentError("No matching normalization method for $(typeof(field)) with given arguments"))
 end
 
-"""
-    normalize(df, field::NormalizeField, args...; kwargs...) -> DataFrame
 
-Version non mutante de `normalize!`:
-crée une copie de `df`, applique `normalize!` dessus et la renvoie.
+"""
+    normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...) -> DataFrame
+
+Version non mutante de [`normalize!`] : crée une copie de `df`, applique `normalize!`
+sur cette copie, puis renvoie le résultat.
+
+# Arguments
+
+- `df`    : `AbstractDataFrame` d’entrée (non modifié).
+- `field` : type de champ indiquant la normalisation à appliquer
+            (`EmploymentType()`, `CompanySize()`, `RemoteRatio()`, `JobTitle()`, `CountryCode()`, etc.).
+- `args...` / `kwargs...` : paramètres supplémentaires passés à la méthode `normalize!`
+  correspondante.
+
+# Retour
+
+- Un nouveau `DataFrame` contenant la version normalisée de `df`.
+
+# Notes
+
+- Utile lorsque l’on souhaite chaîner plusieurs transformations sans muter les
+  données sources.
 """
 function normalize(df::AbstractDataFrame, field::NormalizeField, args...; kwargs...)
     df2 = copy(df)
@@ -48,20 +125,6 @@ end
 
 # EmploymentType
 
-"""
-    normalize!(df, EmploymentType(); col = :employment_type)
-
-Mappe les codes:
-- FT -> "Full-time"
-- PT -> "Part-time"
-- CT -> "Contract"
-- FL -> "Freelance"
-
-et convertit la colonne en `CategoricalArray` (non ordonnée).
-
-Les valeurs non reconnues sont conservées telles quelles (pas écrasées),
-pour ne rien perdre par rapport aux données brutes.
-"""
 function normalize!(df::AbstractDataFrame, ::EmploymentType; col::Symbol = :employment_type)
     colname = _resolve_col(df, col)
 
@@ -76,13 +139,6 @@ end
 
 # CompanySize
 
-"""
-    normalize!(df, CompanySize(), UptoDown(); col = :company_size)
-
-Crée un facteur ordonné avec niveaux du plus petit au plus grand (S < M < L).
-
-Les valeurs sont traitées comme des codes "S", "M", "L" déjà présentes dans le dataset.
-"""
 function normalize!(df::AbstractDataFrame, ::CompanySize, ::UptoDown; col::Symbol = :company_size)
     colname = _resolve_col(df, col)
 
@@ -92,11 +148,6 @@ function normalize!(df::AbstractDataFrame, ::CompanySize, ::UptoDown; col::Symbo
     return df
 end
 
-"""
-    normalize!(df, CompanySize(), DowntoUp(); col = :company_size)
-
-Crée un facteur ordonné avec niveaux du plus grand au plus petit (L < M < S).
-"""
 function normalize!(df::AbstractDataFrame, ::CompanySize, ::DowntoUp; col::Symbol = :company_size)
     colname = _resolve_col(df, col)
 
@@ -109,17 +160,6 @@ end
 
 # RemoteRatio
 
-"""
-    normalize!(df, RemoteRatio(); col=:remote_ratio, allowed=(0,50,100))
-
-Force les valeurs de `col` dans l'ensemble `allowed` en prenant la valeur la plus proche.
-`missing` est conservé. Si la colonne n'existe pas, lève une erreur.
-
-Ex:
-- 20 -> 0
-- 40 -> 50
-- 80 -> 100
-"""
 function normalize!(df::AbstractDataFrame, ::RemoteRatio;
                     col::Symbol = :remote_ratio,
                     allowed = (0, 50, 100))
@@ -143,19 +183,6 @@ end
 
 # JobTitle
 
-"""
-    normalize!(df, JobTitle(); col=:job_title, mapping=JOB_TITLE_MAPPING)
-
-Harmonise les intitulés de poste via un dictionnaire de correspondance.
-
-- `col`     : nom de la colonne à normaliser.
-- `mapping` : dictionnaire de correspondance brut -> catégorie canonique,
-              par défaut `JOB_TITLE_MAPPING` défini dans `mappings.jl`.
-
-Les valeurs non trouvées dans le mapping sont conservées telles quelles
-(pour ne pas perdre d'information), mais la structure permet de plugger
-des tables plus riches sans changer le code.
-"""
 function normalize!(df::AbstractDataFrame, ::JobTitle;
                     col::Symbol = :job_title,
                     mapping::AbstractDict{<:AbstractString,<:AbstractString} = JOB_TITLE_MAPPING)
@@ -175,28 +202,6 @@ end
 
 # CountryCode (+ région optionnelle)
 
-"""
-    normalize!(df, CountryCode(); col=:country,
-               mapping=COUNTRY_CODE_MAPPING,
-               region_col::Union{Symbol,Nothing}=nothing)
-
-Convertit les valeurs de `col` en codes ISO2 cohérents à l'aide d'un dictionnaire externe.
-
-- `col`        : colonne contenant le pays / code brut.
-- `mapping`    : dictionnaire brut -> ISO2 (par défaut `COUNTRY_CODE_MAPPING`).
-- `region_col` :
-    * `nothing` (défaut) : aucune colonne région ajoutée.
-    * sinon : nom de la colonne où écrire la région, dérivée du code ISO2 via `REGION_MAP`.
-
-Comportement:
-- Si une valeur est trouvée dans `mapping` (en exact, upper ou lower), on utilise ce code.
-- Sinon, on conserve la valeur originale comme code (aucune perte d'information).
-- Si `region_col` est fourni, on crée/remplit cette colonne avec la région correspondante
-  quand `REGION_MAP` contient le code, sinon `missing`.
-
-Ce design montre bien le multiple dispatch: le choix de cette logique se fait
-sur le type `CountryCode`, sans `if` globaux sur des strings.
-"""
 function normalize!(df::AbstractDataFrame, ::CountryCode;
                     col::Symbol = :country,
                     mapping = COUNTRY_CODE_MAPPING,
