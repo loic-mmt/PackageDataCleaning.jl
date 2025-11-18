@@ -1,7 +1,5 @@
 # convert_currency_to_usd
 
-import DataFrames: AbstractDataFrame, nrow, leftjoin!, select!, Not, rename!
-using DataFrames
 
 # Type abstrait pour les conversions de devises
 abstract type CurrencyConversionMode end

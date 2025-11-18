@@ -1,6 +1,6 @@
 module PackageDataCleaning
 
-import DataFrames: AbstractDataFrame, nrow, names
+import DataFrames: AbstractDataFrame, nrow, names, leftjoin!, select!, Not, rename!
 using DataFrames
 using CategoricalArrays
 using CSV
@@ -33,5 +33,5 @@ export load_raw_csv,
        convert_currency_to_usd!,
        convert_currency_to_usd,
        CurrencyConversionMode
-    
+
 end
