@@ -100,7 +100,9 @@ sort(out.a)
 
 
 
-
+using DataFrames
+using Statistics: mean, median
+using CategoricalArrays
 
 
 
@@ -194,6 +196,45 @@ function impute_missing!(df::AbstractDataFrame;
     # 2. Boucler sur chaque colonne cible:
     #      - router vers impute_column!(...) en fonction du type + méthode
     # 3. Si verbose, afficher un résumé
+    all_cols = names(df)
+    target_cols = if cols === nothing
+        all_cols
+    else
+        if cols isa AbstractVector
+            Symbol.(cols)
+        else
+            Symbol[Symbol(cols)]
+        end
+    end
+
+    exclude_syms = Symbol.(exclude)
+    target_cols = filter(c -> !(c in exclude_syms), target_cols)
+
+    for colname in target_cols
+        col = df[!, colname]
+        T = eltype(col)
+
+        before_missing = count(ismissing, col)
+
+        if T <: Union{Missing, Real}
+            impute_column!(col, num_method)
+            method_str = string(typeof(num_method))
+        elseif T <: Union{Missing, Bool}
+            impute_column!(col, bool_method)
+            method_str = string(typeof(bool_method))
+        elseif T <: Union{Missing, AbstractString} || col isa CategoricalArray
+            impute_column!(col, cat_method)
+            method_str = string(typeof(cat_method))
+        else 
+            method_str = "none (type non géré)"
+        end
+
+        if verbose
+            after_missing = count(ismissing, col)
+            println("impute_missing!: colonne $(colname) - $(before_missing) -> $(after_missing) missing (méthode = $(method_str))")
+        end
+    end
+
     return df
 end
 
@@ -223,6 +264,7 @@ end
 "Imputation numérique par médiane."
 function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, ::NumMedian)
     # TODO: calculer la médiane des valeurs non-missing et remplacer les missing.
+
     return col
 end
 
