@@ -261,29 +261,72 @@ function impute_column!(col, method::ImputeMethod)
     return col
 end
 
+
 "Imputation numérique par médiane."
 function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, ::NumMedian)
-    # TODO: calculer la médiane des valeurs non-missing et remplacer les missing.
+    vals = collect(skipmissing(cols))
+    if isempty(vals)
+        return col
+    end # toute la colonne est missing -> on ne touche pas
+
+    T = Base.nonmissingtype(eltype(col))
+    m = median(vals)
+    mT = convert(T, m)
+
+    for i in eachindex(col)
+        if ismissing(col[i])
+            col[i] = mT
+        end
+    end
 
     return col
 end
 
 "Imputation numérique par moyenne."
 function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, ::NumMean)
-    # TODO
+    vals = collect(skipmissing(col))
+    if isempty(vals)
+        return col
+    end
+
+    T = Base.nonmissingtype(eltype(col))
+    m = mean(vals)
+    mT = convert(T, m)
+
+    for i in eachindex(col)
+        if ismissing(col[i])
+            col[i] = mT
+        end
+    end
     return col
 end
 
 "Imputation numérique avec constante donnée."
 function impute_column!(col::AbstractVector{<:Union{Missing, Real}}, m::NumConstant)
-    # TODO: utiliser m.value
+    T = Base.nonmissingtype(eltype(col))
+    v = convert(T, m.value) #pas sur de comprendre comment m.value marche
+
+    for i in eachindex(col)
+        if ismissing(col[i])
+            col[i] = v
+        end
+    end
     return col
 end
 
 
 "Imputation catégorielle par modalité majoritaire."
 function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, ::CatMode)
-    # TODO: trouver la valeur la plus fréquente (hors missing) et l'utiliser
+    counts = Dict{String, Int}()
+
+    for x in col # compte les valeurs non-missing
+        if !ismissing(x)
+            s = String(x)
+            counts[s] = get(counts, s, 0) + 1
+        end
+    end
+
+    if isempty
     return col
 end
 
