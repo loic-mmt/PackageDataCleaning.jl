@@ -1,4 +1,4 @@
-# Tests for load_raw_csv
+# Tests for validation.jl
 using Test, PackageDataCleaning
 using DataFrames
 using CategoricalArrays

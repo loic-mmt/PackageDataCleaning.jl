@@ -2,6 +2,7 @@ module PackageDataCleaning
 
 import DataFrames: AbstractDataFrame, nrow, names, leftjoin!, select!, Not, rename!
 using DataFrames
+using Statistics: mean, median
 using CategoricalArrays
 using CSV
 
@@ -10,6 +11,7 @@ include("mappings.jl")
 include("utils.jl")
 include("normalization.jl")
 include("currency.jl")
+include("missing.jl")
 
 
 export load_raw_csv,
@@ -32,6 +34,20 @@ export load_raw_csv,
        UseExchangeRates,
        convert_currency_to_usd!,
        convert_currency_to_usd,
-       CurrencyConversionMode
+       CurrencyConversionMode,
+       ImputeMethod,
+       NumericImputeMethod,
+       NumMedian,
+       NumMean,
+       NumConstant,
+       CategoricalImputeMethod,
+       CatMode,
+       CatConstant,
+       CatNewLevel,
+       BoolImputeMethod,
+       BoolMajority,
+       impute_missing!,
+       impute_missing,
+       impute_column!
 
 end
