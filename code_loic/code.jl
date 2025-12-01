@@ -326,7 +326,7 @@ function impute_column!(col::AbstractVector{<:Union{Missing, AbstractString}}, :
         end
     end
 
-    if isempty
+    if isemp
     return col
 end
 
