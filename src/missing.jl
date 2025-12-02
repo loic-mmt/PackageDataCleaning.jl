@@ -415,7 +415,7 @@ function impute_column!(col::AbstractVector{<:Union{Missing, Bool}}, ::BoolMajor
 end
 
 
-function impute_column!(col::CategoricalArray{T,1,<:Union{Missing, T}}, ::CatMode) where {T<:AbstractString}
+function impute_column!(col::CategoricalVector, ::CatMode)
     best_level = nothing
     best_count = -1
 
@@ -433,7 +433,7 @@ function impute_column!(col::CategoricalArray{T,1,<:Union{Missing, T}}, ::CatMod
     return col
 end
 
-function impute_column!(col::CategoricalArray{T,1,<:Union{Missing, T}}, m::CatConstant) where {T<:AbstractString}
+function impute_column!(col::CategoricalVector, m::CatConstant)
     lab = m.value
     if !(lab in levels(col))
         levels!(col, vcat(levels(col), lab))
@@ -442,7 +442,7 @@ function impute_column!(col::CategoricalArray{T,1,<:Union{Missing, T}}, m::CatCo
     return col
 end
 
-function impute_column!(col::CategoricalArray{T,1,<:Union{Missing, T}}, m::CatNewLevel) where {T<:AbstractString}
+function impute_column!(col::CategoricalVector, m::CatNewLevel)
     lab = m.label
     if !(lab in levels(col))
         levels!(col, vcat(levels(col), lab))
