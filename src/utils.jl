@@ -2,7 +2,7 @@
 """
     _resolve_col(df::AbstractDataFrame, col::Symbol)
 
-Résout le nom d'une colonne dans un DataFrame, en gérant les différences de casse ou de type.
+Résout le nom d'une colonne dans un DataFrame, en gérant les différences de classe ou de type.
 Retourne le nom exact de la colonne tel qu'il apparaît dans le DataFrame.
 
 # Arguments

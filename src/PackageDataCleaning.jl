@@ -12,6 +12,7 @@ include("utils.jl")
 include("normalization.jl")
 include("currency.jl")
 include("missing.jl")
+include("export.jl")
 
 
 export load_raw_csv,
@@ -49,5 +50,6 @@ export load_raw_csv,
        impute_missing!,
        impute_missing,
        impute_column!
+       export_cleaned
 
 end
