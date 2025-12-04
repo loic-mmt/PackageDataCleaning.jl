@@ -1,30 +1,4 @@
-"""
-Fonction interne qui applique toutes les étapes de nettoyage
 
-
-Fonctions et modes différents : 
-load_raw_csv, load_raw_csv(IO)
-validate_schema
-standardize_colnames!
-enforce_types
-deduplicate_rows, DropAll, KeepFirst
-normalize, normalize!, UptoDown, DowntoUp, EmploymentType, CompanySize, UptoDown, DowntoUp, RemoteRatio, JobTitle, CountryCode
-UseExchangeRates, convert_currency_to_usd!, convert_currency_to_usd, CurrencyConversionMode
-ImputeMethod, NumericImputeMethod, NumMedian, NumMean, NumConstant,
-CategoricalImputeMethod, CatMode, CatConstant, CatNewLevel,
-BoolImputeMethod, BoolMajority,
-impute_missing!, impute_missing, impute_column!
-export_cleaned, export_cleaned(IO)
-
-
-	1.	MinimalPipeline – ingestion + validation.
-	2.	LightCleanPipeline – nettoyage léger (KeepFirst + imputation soft).
-	3.	StrictCleanPipeline – qualité max, duplicates agressifs, imputation stricte, catégories “NA”.
-	4.	MLReadyPipeline – prêt pour modèle (FX, features métiers, normalisation, imputation orientée ML).
-	5.	CurrencyFocusPipeline – conversion de devises uniquement.
-	6.	NoImputePipeline – nettoyage sans imputation, pour laisser les missing visibles.
-
-"""
 abstract type AbstractPipelineMode end
 
 struct MinimalPipeline      <: AbstractPipelineMode end
