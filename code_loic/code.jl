@@ -22,6 +22,25 @@ Point d'entrée générique pour exécuter un pipeline de nettoyage/normalisatio
   via `load_raw_csv`, puis délèguent à la version `pipeline(df, mode; ...)`.
 - Les méthodes spécialisées sur chaque `*Pipeline` définissent les étapes
   appliquées (validation, dédoublonnage, imputation, normalisation, FX, etc.).
+
+ Exemple d'utilisation :
+```julia
+# 1) Depuis un chemin de fichier, pipeline ML complet :
+df_ml = pipeline("data/raw_salaries.csv", MLReadyPipeline())
+
+# 2) Pipeline léger pour EDA, depuis un DataFrame déjà chargé :
+df_light = pipeline(df, LightCleanPipeline(); dedup_by = [:company_name, :job_title])
+
+# 3) Pipeline strict avec validation de schéma :
+required = [:work_year, :salary, :salary_currency]
+df_strict = pipeline("data/raw_salaries.csv",
+                     StrictCleanPipeline();
+                     required_columns = required,
+                     strict = true)
+
+# 4) Juste conversion USD :
+df_fx = pipeline(df, CurrencyFocusPipeline())
+```
 """
 function pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
     throw(ArgumentError("No pipeline implementation defined for mode $(typeof(mode))"))
@@ -230,7 +249,7 @@ function pipeline(df::AbstractDataFrame, ::NoImputePipeline;
     df2 = pipeline(df, MinimalPipeline();
                    required_columns=required_columns,
                    strict=strict)
-                   
+
     # Si l’utilisateur ne précise pas de colonnes, on déduplique sur toutes les colonnes.
     by_cols = dedup_by === nothing ? names(df2) : dedup_by 
     df2 = deduplicate_rows(df2, dedup_mode; by=by_cols)
@@ -238,26 +257,9 @@ function pipeline(df::AbstractDataFrame, ::NoImputePipeline;
     return df2
 end
 
-""" Exemple d'utilisation
-# 1) Depuis un chemin de fichier, pipeline ML complet :
-df_ml = pipeline("data/raw_salaries.csv", MLReadyPipeline())
 
-# 2) Pipeline léger pour EDA, depuis un DataFrame déjà chargé :
-df_light = pipeline(df, LightCleanPipeline(); dedup_by = [:company_name, :job_title])
 
-# 3) Pipeline strict avec validation de schéma :
-required = [:work_year, :salary, :salary_currency]
-df_strict = pipeline("data/raw_salaries.csv",
-                     StrictCleanPipeline();
-                     required_columns = required,
-                     strict = true)
 
-# 4) Juste conversion USD :
-df_fx = pipeline(df, CurrencyFocusPipeline())
-"""
-
-# -------------------------------------------------------------------
-# Export pipeline utilities
 
 """
     export_pipeline(in_path::AbstractString,
