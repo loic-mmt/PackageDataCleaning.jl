@@ -57,7 +57,7 @@ function pipeline(df::AbstractDataFrame, ::MinimalPipeline;
     # Noms de colonnes propres
     standardize_colnames!(df)
 
-    # Inférence de types (retourne une copie)
+    # Vérif des types
     df2 = enforce_types(df)
     return df2
 end
@@ -127,7 +127,7 @@ function pipeline(df::AbstractDataFrame, ::StrictCleanPipeline;
     by_cols = dedup_by === nothing ? names(df2) : dedup_by
     df2 = deduplicate_rows(df2, DropAll(); by=by_cols)
 
-    # Étape 3 : cap des valeurs extrêmes (winsorisation) sur colonnes numériques
+    # Étape 3 : cap des valeurs extrêmes sur les colonnes numériques
     df2 = winsorize(df2)
 
     # Étape 4 : imputation stricte
@@ -230,8 +230,9 @@ function pipeline(df::AbstractDataFrame, ::NoImputePipeline;
     df2 = pipeline(df, MinimalPipeline();
                    required_columns=required_columns,
                    strict=strict)
-
-    by_cols = dedup_by === nothing ? names(df2) : dedup_by
+                   
+    # Si l’utilisateur ne précise pas de colonnes, on déduplique sur toutes les colonnes.
+    by_cols = dedup_by === nothing ? names(df2) : dedup_by 
     df2 = deduplicate_rows(df2, dedup_mode; by=by_cols)
 
     return df2
