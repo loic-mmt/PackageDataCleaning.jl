@@ -1,112 +1,345 @@
-#cleaning_pipeline, finalize_salary_tbl
+abstract type AbstractPipelineMode end
 
-module CleaningPipeline
+struct MinimalPipeline      <: AbstractPipelineMode end
+struct LightCleanPipeline   <: AbstractPipelineMode end
+struct StrictCleanPipeline  <: AbstractPipelineMode end
+struct MLReadyPipeline      <: AbstractPipelineMode end
+struct CurrencyFocusPipeline <: AbstractPipelineMode end
+struct NoImputePipeline     <: AbstractPipelineMode end
 
-using DataFrames
-export cleaning_pipeline
+
+
 
 """
-    _clean(df::DataFrame; kwargs...) -> DataFrame
+    pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
+    pipeline(path::AbstractString, mode::AbstractPipelineMode; load_kwargs...)
+    pipeline(io::IO, mode::AbstractPipelineMode; load_kwargs...)
 
-Fonction interne qui applique toutes les étapes de nettoyage :
-- standardisation des noms de colonnes
-- validation du schéma (optionnel)
-- enforcement des types
-- conversion de devises en USD (si les colonnes salary/currency/year existent)
-- suppression des doublons
+Point d'entrée générique pour exécuter un pipeline de nettoyage/normalisation.
 
-Appelée par toutes les variantes de `cleaning_pipeline`.
+- Les méthodes sur `path::AbstractString` et `io::IO` chargent d'abord un CSV
+  via `load_raw_csv`, puis délèguent à la version `pipeline(df, mode; ...)`.
+- Les méthodes spécialisées sur chaque `*Pipeline` définissent les étapes
+  appliquées (validation, dédoublonnage, imputation, normalisation, FX, etc.).
+
+ Exemple d'utilisation :
+```julia
+# 1) Depuis un chemin de fichier, pipeline ML complet :
+df_ml = pipeline("data/raw_salaries.csv", MLReadyPipeline())
+
+# 2) Pipeline léger pour EDA, depuis un DataFrame déjà chargé :
+df_light = pipeline(df, LightCleanPipeline(); dedup_by = [:company_name, :job_title])
+
+# 3) Pipeline strict avec validation de schéma :
+required = [:work_year, :salary, :salary_currency]
+df_strict = pipeline("data/raw_salaries.csv",
+                     StrictCleanPipeline();
+                     required_columns = required,
+                     strict = true)
+
+# 4) Juste conversion USD :
+df_fx = pipeline(df, CurrencyFocusPipeline())
+```
 """
-function _clean(df::DataFrame;
-    schema=nothing,
-    schema_mode=:lenient,
-    currency_col=:currency,
-    salary_col=:salary,
-    year_col=:year,
-    do_standardize_colnames=true,
-    do_enforce_types=true,
-    do_currency_convert=true,
-    do_deduplicate=true,
-    keep_duplicates=:first,
-    protected_cols=Symbol[],
-    debug=false
-)
-    df2 = copy(df)
+function pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
+    throw(ArgumentError("No pipeline implementation defined for mode $(typeof(mode))"))
+end
 
-    do_standardize_colnames && standardize_colnames!(df2)
-    schema !== nothing       && validate_schema(df2, schema, schema_mode)
-    do_enforce_types         && (df2 = enforce_types(df2))
+function pipeline(path::AbstractString, mode::AbstractPipelineMode; load_kwargs...)
+    df = load_raw_csv(path; load_kwargs...)
+    return pipeline(df, mode)
+end
 
-    if do_currency_convert && all(x -> x ∈ names(df2), (currency_col, salary_col, year_col))
-        convert_currency_to_usd!(df2; currency_col=currency_col, salary_col=salary_col, year_col=year_col)
+function pipeline(io::IO, mode::AbstractPipelineMode; load_kwargs...)
+    df = load_raw_csv(io; load_kwargs...)
+    return pipeline(df, mode)
+end
+
+
+"""
+    pipeline(df::AbstractDataFrame, ::MinimalPipeline; required_columns=nothing, strict::Bool=true)
+
+Pipeline minimal : ingestion + validation + normalisation des noms de colonnes
++ inférence de types.
+
+- `required_columns` : liste de colonnes attendues ; si `nothing`, pas de validation.
+- `strict` : si `true`, `validate_schema` lève une erreur si des colonnes manquent.
+"""
+function pipeline(df::AbstractDataFrame, ::MinimalPipeline;
+                  required_columns=nothing,
+                  strict::Bool=true)
+    if required_columns !== nothing
+        validate_schema(df, required_columns; strict=strict)
     end
 
-    do_deduplicate && (df2 = deduplicate_rows(df2; mode=keep_duplicates, blind_rows=protected_cols))
+    # Noms de colonnes propres
+    standardize_colnames!(df)
+
+    # Vérif des types
+    df2 = enforce_types(df)
+    return df2
+end
+
+
+"""
+    pipeline(df::AbstractDataFrame, ::LightCleanPipeline; kwargs...)
+
+Pipeline "léger" pour exploration :
+1. `MinimalPipeline` (ingestion + validation + types)
+2. dédoublonnage (par défaut `KeepFirst()`)
+3. imputation soft (médiane, mode, majorité booléenne).
+
+Mots-clés utiles :
+- `required_columns`, `strict` : passés à `MinimalPipeline`.
+- `dedup_mode` :: `DedupMode` (par défaut `KeepFirst()`).
+- `dedup_by`   : colonnes utilisées pour la clé (par défaut toutes les colonnes).
+- `num_method`, `cat_method`, `bool_method` : stratégies d’imputation.
+"""
+function pipeline(df::AbstractDataFrame, ::LightCleanPipeline;
+                  required_columns=nothing,
+                  strict::Bool=true,
+                  dedup_mode::DedupMode = KeepFirst(),
+                  dedup_by = nothing,
+                  num_method::NumericImputeMethod = NumMedian(),
+                  cat_method::CategoricalImputeMethod = CatMode(),
+                  bool_method::BoolImputeMethod = BoolMajority())
+    # Étape 1 : pipeline minimal
+    df2 = pipeline(df, MinimalPipeline();
+                   required_columns=required_columns,
+                   strict=strict)
+
+    # Étape 2 : dédoublonnage
+    by_cols = dedup_by === nothing ? names(df2) : dedup_by
+    df2 = deduplicate_rows(df2, dedup_mode; by=by_cols)
+
+    # Étape 3 : imputation légère
+    impute_missing!(df2;
+        num_method  = num_method,
+        cat_method  = cat_method,
+        bool_method = bool_method,
+    )
 
     return df2
 end
 
-"""
-    cleaning_pipeline(df::DataFrame) -> DataFrame
-
-Pipeline simple appliquant toutes les étapes par défaut.
-"""
-
-function cleaning_pipeline(df::DataFrame)
-    _clean(df)
-end
 
 """
-    cleaning_pipeline(df::DataFrame, schema::Dict; mode=:lenient) -> DataFrame
+    pipeline(df::AbstractDataFrame, ::StrictCleanPipeline; kwargs...)
 
-Pipeline avec validation de schéma selon `schema`.
-`mode` peut être : `:lenient` ou `:strict`.
+Pipeline "strict" : qualité max.
+1. `MinimalPipeline`.
+2. dédoublonnage agressif (`DropAll()` par défaut).
+3. winsorisation (cap des valeurs extrêmes numériques).
+4. imputation stricte (nouveau niveau "NA" pour les catégorielles).
 """
-function cleaning_pipeline(df::DataFrame, schema::Dict; mode=:lenient)
-    _clean(df; schema=schema, schema_mode=mode)
-end
+function pipeline(df::AbstractDataFrame, ::StrictCleanPipeline;
+                  required_columns=nothing,
+                  strict::Bool=true,
+                  dedup_by = nothing)
+    # Étape 1 : pipeline minimal
+    df2 = pipeline(df, MinimalPipeline();
+                   required_columns=required_columns,
+                   strict=strict)
 
-"""
-    cleaning_pipeline(df::DataFrame; kwargs...) -> DataFrame
+    # Étape 2 : dédoublonnage agressif
+    by_cols = dedup_by === nothing ? names(df2) : dedup_by
+    df2 = deduplicate_rows(df2, DropAll(); by=by_cols)
 
-Pipeline flexible : permet de contrôler toutes les options :
-- do_standardize_colnames
-- do_enforce_types
-- do_currency_convert
-- do_deduplicate
-- keep_duplicates
-- protected_cols
-- debug
-"""
+    # Étape 3 : cap des valeurs extrêmes sur les colonnes numériques
+    df2 = winsorize(df2)
 
-function cleaning_pipeline(df::DataFrame;
-    schema=nothing,
-    schema_mode=:lenient,
-    currency_col=:currency,
-    salary_col=:salary,
-    year_col=:year,
-    do_standardize_colnames=true,
-    do_enforce_types=true,
-    do_currency_convert=true,
-    do_deduplicate=true,
-    keep_duplicates=:first,
-    protected_cols=Symbol[],
-    debug=false
-)
-    _clean(df;
-        schema=schema,
-        schema_mode=schema_mode,
-        currency_col=currency_col,
-        salary_col=salary_col,
-        year_col=year_col,
-        do_standardize_colnames=do_standardize_colnames,
-        do_enforce_types=do_enforce_types,
-        do_currency_convert=do_currency_convert,
-        do_deduplicate=do_deduplicate,
-        keep_duplicates=keep_duplicates,
-        protected_cols=protected_cols,
-        debug=debug,
+    # Étape 4 : imputation stricte
+    impute_missing!(df2;
+        num_method  = NumMedian(),
+        cat_method  = CatNewLevel("NA"),
+        bool_method = BoolMajority(),
     )
+
+    return df2
 end
 
+
+"""
+    pipeline(df::AbstractDataFrame, ::MLReadyPipeline; kwargs...)
+
+Pipeline "ML-ready" : prêt pour modèle.
+1. `StrictCleanPipeline`.
+2. normalisations métiers (`EmploymentType`, `CompanySize`, `RemoteRatio`,
+   `JobTitle`, `CountryCode`) si les colonnes existent.
+3. conversion en USD via `UseExchangeRates()` (optionnelle).
+
+Mots-clés utiles :
+- `required_columns`, `strict` : passés à `StrictCleanPipeline`.
+- `company_size_order` :: `NormalMode` (`UptoDown()` ou `DowntoUp()`).
+- `do_currency` :: Bool (par défaut `true`).
+"""
+function pipeline(df::AbstractDataFrame, ::MLReadyPipeline;
+                  required_columns=nothing,
+                  strict::Bool=true,
+                  company_size_order::NormalMode = UptoDown(),
+                  do_currency::Bool = true)
+    # Étape 1 : strict cleaning
+    df2 = pipeline(df, StrictCleanPipeline();
+                   required_columns=required_columns,
+                   strict=strict)
+
+    # Étape 2 : normalisations métiers (appliquées seulement si les colonnes existent)
+    nms = names(df2)
+
+    if :employment_type in nms
+        normalize!(df2, EmploymentType(); col = :employment_type)
+    end
+    if :company_size in nms
+        normalize!(df2, CompanySize(), company_size_order; col = :company_size)
+    end
+    if :remote_ratio in nms
+        normalize!(df2, RemoteRatio(); col = :remote_ratio)
+    end
+    if :job_title in nms
+        normalize!(df2, JobTitle(); col = :job_title)
+    end
+    if :country in nms
+        normalize!(df2, CountryCode(); col = :country)
+    end
+
+    # Étape 3 : conversion de devise
+    if do_currency
+        convert_currency_to_usd!(df2, UseExchangeRates())
+    end
+
+    return df2
+end
+
+
+"""
+    pipeline(df::AbstractDataFrame, ::CurrencyFocusPipeline; kwargs...)
+
+Pipeline focalisé sur la conversion de devises :
+1. `MinimalPipeline`.
+2. conversion vers USD via `UseExchangeRates()`.
+"""
+function pipeline(df::AbstractDataFrame, ::CurrencyFocusPipeline;
+                  required_columns=nothing,
+                  strict::Bool=true)
+    df2 = pipeline(df, MinimalPipeline();
+                   required_columns=required_columns,
+                   strict=strict)
+
+    convert_currency_to_usd!(df2, UseExchangeRates())
+    return df2
+end
+
+
+"""
+    pipeline(df::AbstractDataFrame, ::NoImputePipeline; kwargs...)
+
+Pipeline sans imputation :
+1. `MinimalPipeline`.
+2. dédoublonnage (mode configurable).
+
+Les `missing` sont conservés pour être traités plus tard par l’utilisateur
+ou par un modèle plus sophistiqué.
+"""
+function pipeline(df::AbstractDataFrame, ::NoImputePipeline;
+                  required_columns=nothing,
+                  strict::Bool=true,
+                  dedup_mode::DedupMode = KeepFirst(),
+                  dedup_by = nothing)
+    df2 = pipeline(df, MinimalPipeline();
+                   required_columns=required_columns,
+                   strict=strict)
+
+    # Si l’utilisateur ne précise pas de colonnes, on déduplique sur toutes les colonnes.
+    by_cols = dedup_by === nothing ? names(df2) : dedup_by 
+    df2 = deduplicate_rows(df2, dedup_mode; by=by_cols)
+
+    return df2
+end
+
+
+
+
+
+"""
+    export_pipeline(in_path::AbstractString,
+                    mode::AbstractPipelineMode,
+                    out_path::AbstractString;
+                    load_delim = ',',
+                    export_delim = ',') -> DataFrame
+
+Exécute un pipeline de nettoyage complet puis exporte le résultat dans un CSV.
+
+1. Charge le CSV brut depuis `in_path` avec `load_raw_csv`.
+2. Applique `pipeline(df, mode)` pour exécuter le pipeline choisi.
+3. Exporte le `DataFrame` nettoyé vers `out_path` avec `export_cleaned`.
+
+# Arguments
+
+- `in_path`     : chemin du fichier CSV brut.
+- `mode`        : mode de pipeline (`MinimalPipeline()`, `LightCleanPipeline()`,
+                  `StrictCleanPipeline()`, `MLReadyPipeline()`, etc.).
+- `out_path`    : chemin du fichier CSV de sortie.
+- `load_delim`  : délimiteur utilisé pour lire le CSV d'entrée (par défaut `','`).
+- `export_delim`: délimiteur utilisé pour écrire le CSV de sortie (par défaut `','`).
+
+# Retour
+
+- Le `DataFrame` nettoyé qui a été exporté.
+
+# Exemple
+
+```julia
+cleaned = export_pipeline("data/raw_salaries.csv",
+                          MLReadyPipeline(),
+                          "data/clean/salaries_ml.csv")
+```
+"""
+function export_pipeline(in_path::AbstractString,
+                         mode::AbstractPipelineMode,
+                         out_path::AbstractString;
+                         load_delim::Char = ',',
+                         export_delim::Char = ',')
+    # 1) Chargement brut
+    df = load_raw_csv(in_path; delim = load_delim)
+
+    # 2) Application du pipeline
+    df_clean = pipeline(df, mode)
+
+    # 3) Export
+    export_cleaned(out_path, df_clean; delim = export_delim)
+
+    return df_clean
+end
+
+
+"""
+    export_pipeline(df::AbstractDataFrame,
+                    mode::AbstractPipelineMode,
+                    out_path::AbstractString;
+                    export_delim = ',') -> DataFrame
+
+Variante d'`export_pipeline` lorsqu'on dispose déjà d'un `DataFrame` en
+mémoire :
+
+1. Applique `pipeline(df, mode)`.
+2. Exporte le `DataFrame` nettoyé vers `out_path`.
+
+# Arguments
+
+- `df`          : `DataFrame` brut déjà chargé.
+- `mode`        : mode de pipeline à appliquer.
+- `out_path`    : chemin du CSV de sortie.
+- `export_delim`: délimiteur utilisé pour écrire le CSV de sortie.
+
+# Retour
+
+- Le `DataFrame` nettoyé qui a été exporté.
+"""
+function export_pipeline(df::AbstractDataFrame,
+                         mode::AbstractPipelineMode,
+                         out_path::AbstractString;
+                         export_delim::Char = ',')
+    df_clean = pipeline(df, mode)
+    export_cleaned(out_path, df_clean; delim = export_delim)
+    return df_clean
 end

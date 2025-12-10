@@ -319,11 +319,11 @@ function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
     for col in names(out)
         x = out[!, col]
 
-        if eltype(x) <: Union{Number, CategoricalValue}
+        if eltype(x) <: Union{Missing, Number, CategoricalValue}
             continue
         end
 
-        xs = [ismissing(v) ? missing : strip(String(v)) for v in x]
+        xs = [ismissing(v) ? missing : strip(string(v)) for v in x]
         valid = filter(v -> !ismissing(v) && v != "", xs)
         n_valid = length(valid)
         if n_valid == 0
@@ -334,7 +334,7 @@ function enforce_types(df::DataFrame; num_threshold=0.9, max_factor_levels=20)
             if ismissing(v) || v == ""
                 missing
             else
-                p = tryparse(Float64, String(v))
+                p = tryparse(Float64, string(v))
                 p === nothing ? missing : p
             end
         end

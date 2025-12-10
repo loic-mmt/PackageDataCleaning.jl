@@ -6,14 +6,17 @@ using Statistics: mean, median
 using CategoricalArrays
 using CSV
 
+const SalaryTbl = DataFrame
+
 include("validation.jl")
 include("mappings.jl")
 include("utils.jl")
 include("normalization.jl")
 include("currency.jl")
+include("quality_outliers.jl")
 include("missing.jl")
 include("export.jl")
-
+include("pipeline.jl")
 
 export load_raw_csv,
        validate_schema,
@@ -25,6 +28,9 @@ export load_raw_csv,
        KeepFirst,
        normalize,
        normalize!,
+       validate_range,
+       SalaryTbl,
+       winsorize,
        EmploymentType,
        CompanySize,
        UptoDown,
@@ -49,7 +55,15 @@ export load_raw_csv,
        BoolMajority,
        impute_missing!,
        impute_missing,
-       impute_column!
-       export_cleaned
+       impute_column!,
+       export_cleaned,
+       MinimalPipeline,
+       LightCleanPipeline,
+       StrictCleanPipeline,
+       MLReadyPipeline,
+       CurrencyFocusPipeline,
+       NoImputePipeline,
+       pipeline,
+       export_pipeline
 
 end
