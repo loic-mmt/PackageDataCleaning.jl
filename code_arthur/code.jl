@@ -29,12 +29,7 @@ Crée un objet SalaryTbl à partir d'un DataFrame après validation du schéma.
 
 # Retour
 - Un objet de type `SalaryTbl`
-
-# Exemple
-```julia
-df = DataFrame(work_year=2023, experience_level="Senior", ...)
-salary_data = finalize_salary_tbl(df) """
-
+"""
 
 
 
