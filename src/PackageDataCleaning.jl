@@ -18,7 +18,7 @@ include("missing.jl")
 include("export.jl")
 include("pipeline.jl")
 
-export load_raw_csv,
+export import_data,
        validate_schema,
        standardize_colnames!,
        enforce_types,

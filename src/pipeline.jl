@@ -18,7 +18,7 @@ struct NoImputePipeline     <: AbstractPipelineMode end
 Point d'entrée générique pour exécuter un pipeline de nettoyage/normalisation.
 
 - Les méthodes sur `path::AbstractString` et `io::IO` chargent d'abord un CSV
-  via `load_raw_csv`, puis délèguent à la version `pipeline(df, mode; ...)`.
+  via `import_data`, puis délèguent à la version `pipeline(df, mode; ...)`.
 - Les méthodes spécialisées sur chaque `*Pipeline` définissent les étapes
   appliquées (validation, dédoublonnage, imputation, normalisation, FX, etc.).
 
@@ -46,12 +46,12 @@ function pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
 end
 
 function pipeline(path::AbstractString, mode::AbstractPipelineMode; load_kwargs...)
-    df = load_raw_csv(path; load_kwargs...)
+    df = import_data(path; load_kwargs...)
     return pipeline(df, mode)
 end
 
 function pipeline(io::IO, mode::AbstractPipelineMode; load_kwargs...)
-    df = load_raw_csv(io; load_kwargs...)
+    df = import_data(io; load_kwargs...)
     return pipeline(df, mode)
 end
 
@@ -269,7 +269,7 @@ end
 
 Exécute un pipeline de nettoyage complet puis exporte le résultat dans un CSV.
 
-1. Charge le CSV brut depuis `in_path` avec `load_raw_csv`.
+1. Charge le CSV brut depuis `in_path` avec `import_data`.
 2. Applique `pipeline(df, mode)` pour exécuter le pipeline choisi.
 3. Exporte le `DataFrame` nettoyé vers `out_path` avec `export_cleaned`.
 
@@ -300,7 +300,7 @@ function export_pipeline(in_path::AbstractString,
                          load_delim::Char = ',',
                          export_delim::Char = ',')
     # 1) Chargement brut
-    df = load_raw_csv(in_path; delim = load_delim)
+    df = import_data(in_path; delim = load_delim)
 
     # 2) Application du pipeline
     df_clean = pipeline(df, mode)

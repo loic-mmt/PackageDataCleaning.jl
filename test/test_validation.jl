@@ -4,20 +4,34 @@ using DataFrames
 using CategoricalArrays
 
 
-@testset "load_raw_csv" begin
-    @test_throws ArgumentError load_raw_csv("fichier_qui_existe_pas.csv")
+@testset "import_data" begin
+    @test_throws ArgumentError import_data("fichier_qui_existe_pas.csv")
     # CSV temporaire
     csv_path = joinpath(@__DIR__, "sample_load_raw_csv.csv")
     open(csv_path, "w") do io
         write(io, "col1,col2\n1,hello\n2,world\n")
     end
 
-    df = load_raw_csv(csv_path)
+    df = import_data(csv_path)
 
     @test size(df) == (2, 2)
     @test names(df) == ["col1", "col2"]
     @test df.col1 == [1, 2]
     @test df.col2 == ["hello", "world"]
+
+    # Lecture depuis une chaîne de texte (from_text = true)
+    csv_text = """
+    col1,col2
+    1,hello
+    2,world
+    """
+
+    df_text = import_data(csv_text; from_text = true)
+
+    @test size(df_text) == (2, 2)
+    @test names(df_text) == ["col1", "col2"]
+    @test df_text.col1 == [1, 2]
+    @test df_text.col2 == ["hello", "world"]
 end
 
 

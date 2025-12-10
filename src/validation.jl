@@ -1,16 +1,16 @@
-# load_raw_csv, validate_schema, standardize_colnames, enforce_types, deduplicate_rows
+# import_data, validate_schema, standardize_colnames, enforce_types, deduplicate_rows
 
 
 """
-    load_raw_csv(path::AbstractString; delim=',', kwargs...) -> DataFrame
-    load_raw_csv(io::IO; delim=',', kwargs...) -> DataFrame
+    import_data(path::AbstractString; delim=',', kwargs...) -> DataFrame
+    import_data(io::IO; delim=',', kwargs...) -> DataFrame
 
 Charge un CSV brut dans un `DataFrame`.
 
 Cette fonction propose deux variantes :
 
-- `load_raw_csv(path::AbstractString; ...)` : lit un fichier CSV à partir d'un chemin sur le disque.
-- `load_raw_csv(io::IO; ...)` : lit un CSV à partir d'un flux IO déjà ouvert (par ex. `IOBuffer`, fichier ouvert).
+- `import_data(path::AbstractString; ...)` : lit un fichier CSV à partir d'un chemin sur le disque.
+- `import_data(io::IO; ...)` : lit un CSV à partir d'un flux IO déjà ouvert (par ex. `IOBuffer`, fichier ouvert).
 
 # Arguments
 
@@ -28,7 +28,7 @@ Cette fonction propose deux variantes :
 Lecture classique depuis un fichier sur le disque :
 
 ```julia
-df = load_raw_csv("data.csv")
+df = import_data("data.csv")
 ```
 
 Lecture depuis un texte CSV en mémoire :
@@ -41,17 +41,39 @@ col1,col2
 \"\"\"
 
 buf = IOBuffer(text)
-df2 = load_raw_csv(buf)
+df2 = import_data(buf)
 ```
 """
-function load_raw_csv end
+function import_data end
 
-function load_raw_csv(path::AbstractString; delim = ',', kwargs...)
-    isfile(path) || throw(ArgumentError("CSV file not found at: $path"))
-    return CSV.read(path, DataFrame; delim=delim, kwargs...)
+function import_data(source::AbstractString; delim = ',', from_text::Bool = false, kwargs...)
+    """
+    Si `from_text == false` (valeur par défaut), `source` est interprété comme un chemin
+    de fichier et la fonction se comporte comme avant :
+
+        df = import_data("data.csv")
+
+    Si `from_text == true`, `source` est interprété comme une chaîne contenant directement
+    le contenu CSV, et est lu via un `IOBuffer` :
+
+        text = \"\"\"
+        col1,col2
+        1,2
+        3,4
+        \"\"\"
+
+        df = import_data(text; from_text = true)
+    """
+    if from_text
+        io = IOBuffer(source)
+        return CSV.read(io, DataFrame; delim = delim, kwargs...)
+    else
+        isfile(source) || throw(ArgumentError("CSV file not found at: $source"))
+        return CSV.read(source, DataFrame; delim = delim, kwargs...)
+    end
 end
 
-function load_raw_csv(io::IO; delim=',', kwargs...)
+function import_data(io::IO; delim=',', kwargs...)
     return CSV.read(io, DataFrame; delim=delim, kwargs...)
 end
 
