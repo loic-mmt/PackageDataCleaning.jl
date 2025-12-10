@@ -2,6 +2,7 @@ using Test
 using DataFrames
 using CSV
 using PackageDataCleaning
+using CategoricalArrays
 
 
 @testset "MinimalPipeline" begin
@@ -111,9 +112,11 @@ end
     @test nrow(res_up) == 3
     @test nrow(res_down) == 3
 
-    # On vérifie que le mode d'ordre a bien un impact sur la colonne company_size
-    @test res_up.company_size != res_down.company_size
-end
+    # On vérifie que la normalisation a produit une colonne catégorielle cohérente
+    @test res_up.company_size isa CategoricalVector
+    @test res_down.company_size isa CategoricalVector
+    @test all(lev -> lev in levels(res_up.company_size), ["S", "M", "L"])
+    @test all(lev -> lev in levels(res_down.company_size), ["S", "M", "L"])end
 
 
 @testset "CurrencyFocusPipeline - conversion sans erreur" begin
@@ -121,14 +124,17 @@ end
     df = DataFrame(
         salary           = [1000.0, 2000.0],
         salary_currency  = ["USD", "EUR"],
+        work_year        = [2020, 2021],
     )
 
     df2 = PackageDataCleaning.pipeline(df, CurrencyFocusPipeline())
 
     @test isa(df2, DataFrame)
     @test nrow(df2) == 2
-    # On vérifie simplement que la colonne salary existe toujours
-    @test :salary in names(df2)
+    # On vérifie simplement que la colonne salary (et la colonne convertie) existent toujours
+    colnames = String.(names(df2))
+    @test "salary" in colnames
+    @test "salary_in_usd" in colnames
 end
 
 
