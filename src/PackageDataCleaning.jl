@@ -2,12 +2,11 @@ module PackageDataCleaning
 
 import DataFrames: AbstractDataFrame, nrow, names, leftjoin!, select!, Not, rename!
 using DataFrames
-using Statistics: mean, median
+using Statistics: mean, median, quantile
 using CategoricalArrays
 using CSV
 
-const SalaryTbl = DataFrame
-
+include("orchestration.jl")
 include("validation.jl")
 include("mappings.jl")
 include("utils.jl")

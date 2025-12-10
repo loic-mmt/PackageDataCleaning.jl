@@ -9,6 +9,7 @@ using DataFrames
     include("test_quality_outliers.jl")
     include("test_missing.jl")
     include("test_pipeline.jl")
+    include("test_orchestration.jl")
 
 end
 
