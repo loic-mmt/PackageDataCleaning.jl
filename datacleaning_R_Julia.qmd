@@ -3,7 +3,7 @@ title: "DataCleaningLib – Librairie R & Julia pour le Data Cleaning"
 authors: "Loïc Mémeteau, Arthur Hauguel, Margot Laignel"
 format:
   revealjs:
-    theme: simple
+    theme: night
     slide-number: true
     transition: slide
 ---
