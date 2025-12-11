@@ -147,13 +147,14 @@ const JOB_TITLE_MAPPING = Dict(
 # Employment type normalization
 ###############################
 
-const EMPLOYMENT_TYPEs = (
+const EMPLOYMENT_TYPES = (
     "Full-time",
     "Part-time",
     "Contract",
     "Freelance",
 )
 
+EMPLOYMENT_TYPES_FIXED = ("FT", "PT", "CT", "FL")
 
 const EMPLOYMENT_TYPE_MAPPING = Dict(
     "FT" => "Full-time",

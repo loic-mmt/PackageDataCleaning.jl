@@ -63,6 +63,10 @@ export import_data,
        CurrencyFocusPipeline,
        NoImputePipeline,
        pipeline,
-       export_pipeline
+       export_pipeline,
+       EMPLOYMENT_TYPES,
+       EMPLOYMENT_TYPES_FIXED,
+       EXPERIENCE, 
+       SIZE
 
 end

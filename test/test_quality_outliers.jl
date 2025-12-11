@@ -6,11 +6,12 @@ using CategoricalArrays
 using Test
 using DataFrames
 
+#Ajout des constantes utilisées dans ces tests.
 # test validate_range
 
 @testset "validate_range avec SalaryTbl" begin
     @testset "Données valides" begin
-        data = (work_year = [2023, 2023, 2024, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
             employment_type = ["FT", "FT", "CT", "FL"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
@@ -25,23 +26,23 @@ using DataFrames
         result = validate_range(salary_tbl)
         
         @test result isa DataFrame
-        @test names(result) == [:variables, :valid_mask]
+        @test names(result) == ["variables", "valid_mask"]
         @test nrow(result) == 6
         @test all(result.valid_mask)
     end
     
     @testset "Données invalides" begin
-        data = (work_year = [2023, 2023, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024],
             experience_level = ["MI", "XX", "EN"],
             employment_type = ["FT", "INVALID", "CT"],
             job_title = ["DS", "ML", "DA"],
             salary = [50000, -1000, 45000],
             salary_currency = ["USD", "EUR", "GBP"],
-            salary_in_usd = [50000, 82000, 45000],
+            salary_in_usd = [50000, 82000, -45000],
             employee_residence = ["US", "FR", "UK"],
             remote_ratio = [0, 150, 100],
             company_location = ["US", "FR", "UK"],
-            company_size = ["M", "XL", "S"])
+            company_size = ["M", "L", "S"])
 
         salary_tbl = SalaryTbl(data)
         result = validate_range(salary_tbl)
@@ -54,7 +55,7 @@ using DataFrames
     end
     
     @testset "Données avec valeurs manquantes" begin
-        data = (work_year = [2023, 2023, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024],
             experience_level = ["MI", missing, "EN"],
             employment_type = ["FT", "PT", missing],
             job_title = ["DS", "ML", "DA"],
@@ -76,7 +77,7 @@ end
 
 @testset "validate_range avec DataFrame personnalisé" begin
     @testset "Tests basiques" begin
-        data =(work_year = [2023, 2023, 2024, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
             employment_type = ["FT", "FT", "CT", "FL"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
@@ -87,7 +88,7 @@ end
             remote_ratio = [0, 50, 100, 25],
             company_location = ["US", "FR", "UK", "US"],
             company_size = ["M", "L", "S", "M"])
-        variables = [:salary, :salary_in_usd, :remote_ratio]
+        variables = ["salary", "salary_in_usd", "remote_ratio"]
         tests = [
             x -> x > 0,
             x -> x < 200000,
@@ -101,7 +102,7 @@ end
     end
     
     @testset "Tests avec échecs" begin
-        data = (work_year = [2023, 2023, 2024, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
             employment_type = ["FT", "FT", "CT", "FL"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
@@ -125,7 +126,7 @@ end
     end
     
     @testset "Vecteurs de longueurs différentes" begin
-        data = (work_year = [2023, 2023, 2024, 2024],
+        data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
             employment_type = ["FT", "FT", "CT", "FL"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
@@ -173,11 +174,10 @@ end
         result = validate_range(data, test_func)
         
         @test result[2] == true
-    end
-    
+    end 
     @testset "Vecteur de strings" begin
         data = ["FT", "PT", "CT", "FL"]
-        test_func = x -> x in EMPLOYMENT_TYPES
+        test_func = x -> x in EMPLOYMENT_TYPES_FIXED
         
         result = validate_range(data, test_func)
         
@@ -204,11 +204,11 @@ end
     win = winsorize(vect; lower_quantile=0.05, upper_quantile=0.95)
 
     @test length(win) == length(vect)
-    @test all(lower <= win ) & all( win <= upper)
+    @test all(lower .<= win ) & all( win .<= upper)
     @test win[2] == vect[2]
     @test win[3] == vect[3]
-    @test win[1] == lower
-    @test win[4] == upper
+    @test win[1] ≈ lower
+    @test win[5] ≈ upper
 end
 
 

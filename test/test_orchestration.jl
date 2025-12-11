@@ -23,7 +23,6 @@ using PackageDataCleaning
     
     @testset "Valid dataset" begin
         tbl = SalaryTbl(df_valid)
-        println("DEBUG: Type of tbl is ", typeof(tbl))
         @test tbl isa SalaryTbl
         @test tbl.df == df_valid
     end
