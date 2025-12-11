@@ -1,0 +1,50 @@
+---
+title: "DataCleaningLib – Librairie R & Julia pour le Data Cleaning"
+authors: "Loïc Mémeteau, Arthur Hauguel, Margot Laignel"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    transition: slide
+---
+
+# Vision du projet
+
+- Construire une **librairie unifiée** de data cleaning pour des données tabulaires (salaires tech).
+- Deux implémentations :
+  - **R** : package `DataCleaningR` avec documntation et pipelines réutilisables.
+  - **Julia** : package `PackageDataCleaning.jl` avec documntation et pipelines réutilisables.
+- Objectif : un **pipeline standardisé** de données brutes -> dataset propre, normalisé, prêt pour la modélisation.
+
+---
+
+## Architecture commune R & Julia
+
+1. **Ingestion & schéma** : import CSV, vérification des colonnes, standardisation des noms.
+2. **Types & normalisation métier** : harmonisation des intitulés, tailles d’entreprise, remote, pays.
+3. **Qualité & valeurs extrêmes** : contrôles de plausibilité, winsorisation des variables numériques.
+
+---
+
+## Architecture commune R & Julia
+
+4. **Valeurs manquantes** : imputation numérique / catégorielle / booléenne.
+5. **Devises** : conversion vers USD via taux de change historiques.
+6. **Export & reporting** : export CSV propre + possibilité de rapport de nettoyage.
+
+---
+
+## Côté Julia – `PackageDataCleaning.jl`
+
+- Module central : `PackageDataCleaning` qui importe et ré-exporte toutes les briques. 
+
+- API pensée en **multiple dispatch**, avec une version mutante `!` et une version non mutante pour chaque brique.
+
+---
+
+## Pipelines Julia prêts à l’emploi
+
+- Types de pipelines :  
+  `MinimalPipeline`, `LightCleanPipeline`, `StrictCleanPipeline`,  
+  `MLReadyPipeline`, `CurrencyFocusPipeline`, `NoImputePipeline`.
+
