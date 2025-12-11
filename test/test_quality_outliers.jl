@@ -13,7 +13,7 @@ using DataFrames
     @testset "Données valides" begin
         data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
-            employment_type = ["FT", "FT", "CT", "FL"],
+            employment_type = ["Full-time", "Full-time", "Contract", "Freelance"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
             salary = [50000, 75000, 45000, 120000],
             salary_currency = ["USD", "EUR", "GBP", "USD"],
@@ -34,7 +34,7 @@ using DataFrames
     @testset "Données invalides" begin
         data = DataFrame(work_year = [2023, 2023, 2024],
             experience_level = ["MI", "XX", "EN"],
-            employment_type = ["FT", "INVALID", "CT"],
+            employment_type = ["Full-time", "INVALID", "Contract"],
             job_title = ["DS", "ML", "DA"],
             salary = [50000, -1000, 45000],
             salary_currency = ["USD", "EUR", "GBP"],
@@ -57,7 +57,7 @@ using DataFrames
     @testset "Données avec valeurs manquantes" begin
         data = DataFrame(work_year = [2023, 2023, 2024],
             experience_level = ["MI", missing, "EN"],
-            employment_type = ["FT", "PT", missing],
+            employment_type = ["Full-time", "Part-time", missing],
             job_title = ["DS", "ML", "DA"],
             salary = [50000, missing, 45000],
             salary_currency = ["USD", "EUR", "GBP"],
@@ -79,7 +79,7 @@ end
     @testset "Tests basiques" begin
         data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
-            employment_type = ["FT", "FT", "CT", "FL"],
+            employment_type = ["Full-time", "Full-time", "Contract", "Freelance"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
             salary = [50000, 75000, 45000, 120000],
             salary_currency = ["USD", "EUR", "GBP", "USD"],
@@ -104,7 +104,7 @@ end
     @testset "Tests avec échecs" begin
         data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
-            employment_type = ["FT", "FT", "CT", "FL"],
+            employment_type = ["Full-time", "Full-time", "Contract", "Freelance"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
             salary = [50000, 75000, 45000, 120000],
             salary_currency = ["USD", "EUR", "GBP", "USD"],
@@ -128,7 +128,7 @@ end
     @testset "Vecteurs de longueurs différentes" begin
         data = DataFrame(work_year = [2023, 2023, 2024, 2024],
             experience_level = ["MI", "SE", "EN", "EX"],
-            employment_type = ["FT", "FT", "CT", "FL"],
+            employment_type = ["Full-time", "Full-time", "Contract", "Freelance"],
             job_title = ["Data Scientist", "ML Engineer", "Analyst", "Director"],
             salary = [50000, 75000, 45000, 120000],
             salary_currency = ["USD", "EUR", "GBP", "USD"],
@@ -176,8 +176,8 @@ end
         @test result[2] == true
     end 
     @testset "Vecteur de strings" begin
-        data = ["FT", "PT", "CT", "FL"]
-        test_func = x -> x in EMPLOYMENT_TYPES_FIXED
+        data = ["Full-time", "Part-time", "Contract", "Freelance"]
+        test_func = x -> x in EMPLOYMENT_TYPES
         
         result = validate_range(data, test_func)
         

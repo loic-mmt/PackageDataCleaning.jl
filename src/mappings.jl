@@ -154,8 +154,6 @@ const EMPLOYMENT_TYPES = (
     "Freelance",
 )
 
-EMPLOYMENT_TYPES_FIXED = ("FT", "PT", "CT", "FL")
-
 const EMPLOYMENT_TYPE_MAPPING = Dict(
     "FT" => "Full-time",
     "PT" => "Part-time",

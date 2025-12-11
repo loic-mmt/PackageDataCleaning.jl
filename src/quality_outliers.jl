@@ -30,7 +30,7 @@ function validate_range end
 
 function validate_range(data::SalaryTbl)
     valid_mask = Bool[]
-    push!(valid_mask, all(x -> x in EMPLOYMENT_TYPES_FIXED, skipmissing(data.df[!, :employment_type])))
+    push!(valid_mask, all(x -> x in EMPLOYMENT_TYPES, skipmissing(data.df[!, :employment_type])))
     push!(valid_mask, all(x -> x in EXPERIENCE, skipmissing(data.df[!, :experience_level])))
     push!(valid_mask, all(x -> x >0, skipmissing(data.df[!, :salary])))
     push!(valid_mask, all(x -> x >0, skipmissing(data.df[!, :salary_in_usd])))

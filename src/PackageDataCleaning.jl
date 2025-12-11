@@ -65,7 +65,6 @@ export import_data,
        pipeline,
        export_pipeline,
        EMPLOYMENT_TYPES,
-       EMPLOYMENT_TYPES_FIXED,
        EXPERIENCE, 
        SIZE
 
