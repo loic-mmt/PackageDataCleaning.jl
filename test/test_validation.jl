@@ -7,7 +7,7 @@ using CategoricalArrays
 @testset "import_data" begin
     @test_throws ArgumentError import_data("fichier_qui_existe_pas.csv")
     # CSV temporaire
-    csv_path = joinpath(@__DIR__, "sample_load_raw_csv.csv")
+    csv_path = joinpath(@__DIR__, "sample_import_data.csv")
     open(csv_path, "w") do io
         write(io, "col1,col2\n1,hello\n2,world\n")
     end
