@@ -1,4 +1,3 @@
-# petites fonctions transverses (normalisation de chaînes, mappings, etc.)
 """
     _resolve_col(df::AbstractDataFrame, col::Symbol)
 

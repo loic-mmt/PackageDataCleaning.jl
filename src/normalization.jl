@@ -1,8 +1,3 @@
-# normalize_experience_level, normalize_employment_type,
-# normalize_company_size, normalize_remote_ratio,
-# normalize_job_title, normalize_country_codes
-
-
 
 """
     NormalMode

@@ -516,21 +516,21 @@ df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
 
 out = deduplicate_rows(df, DropAll(); by = [:a])  # On déduplique uniquement par :a
 size(out)
-# (2, 2)  # seules les lignes avec a == 2 ou 4 sont conservées
+# (2, 2)  | seules les lignes avec a == 2 ou 4 sont conservées
 
 df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
                b = ["a", "b", "b", "c", "d", "d", "e"])
 
 out = deduplicate_rows(df, KeepFirst(); by = [:a])
 size(out)
-# (4, 2)  # a == 1, 2, 3, 4 (1ère occurrence de chaque clé)
+# (4, 2)  | a == 1, 2, 3, 4 (1ère occurrence de chaque clé)
 
 df = DataFrame(a = [1, 1, 2, 3, 3, 3, 4],
                b = ["a", "b", "b", "c", "d", "d", "e"])
 
 out = deduplicate_rows(df, DropAll(); by = [:a], blind_rows = [1])
 sort(out.a)
-# [2, 3, 3, 3, 4]  # la ligne 1 (a == 1) est protégée, les autres clés uniques sont conservées
+# [2, 3, 3, 3, 4]  | la ligne 1 (a == 1) est protégée, les autres clés uniques sont conservées
 ```
 
 """
