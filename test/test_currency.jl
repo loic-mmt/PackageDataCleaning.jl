@@ -32,7 +32,7 @@ end
     # missing doit être propagé
     @test isequal(df.salary_in_usd[4], missing)
 
-    # EUR et GBP doivent être convertis (on vérifie juste qu'ils ne sont pas égaux au salaire original)
+    # EUR et GBP doivent être convertis
     @test df.salary_in_usd[1] != df.salary[1]
     @test df.salary_in_usd[2] != df.salary[2]
 end
@@ -99,7 +99,7 @@ end
     custom_rates = DataFrame(
         year = [2022, 2022],
         currency = ["EUR", "GBP"],
-        rate = [2.0, 3.0]  # taux fantaisistes pour le test
+        rate = [2.0, 3.0]
     )
 
     df = DataFrame(

@@ -15,7 +15,7 @@ using CategoricalArrays
 
     @test isa(df2, DataFrame)
     @test nrow(df2) == 2
-    # On vérifie que le nombre de lignes et de colonnes est conservé
+    # vérifie que le nombre de lignes et de colonnes est conservé
     @test nrow(df2) == nrow(df)
     @test ncol(df2) == ncol(df)
 end
@@ -42,7 +42,7 @@ end
     # CatConstant : remplace les missing par "z"
     @test df2.x_str == ["a", "z", "b"]
 
-    # BoolMajority : en cas d'égalité, on s'attend à true (cf. tests unitaires dédiés)
+    # BoolMajority : en cas d'égalité, on s'attend à true
     @test df2.x_bool == [true, true, false]
 end
 
@@ -56,7 +56,7 @@ end
     # LightCleanPipeline avec KeepFirst : on garde un exemplaire par groupe dupliqué
     df_keep = PackageDataCleaning.pipeline(df, LightCleanPipeline();
                        dedup_mode = KeepFirst(),
-                       # méthodes d'imputation par défaut (pas de missing ici)
+                       # méthodes d'imputation par défaut
                        )
 
     @test isa(df_keep, DataFrame)
@@ -92,13 +92,12 @@ end
 
 
 @testset "MLReadyPipeline - mode company_size_order" begin
-    # On crée deux DataFrames indépendants pour éviter les effets de mutation
     df_up = DataFrame(
         company_size = ["S", "M", "L"],
     )
     df_down = deepcopy(df_up)
 
-    # On désactive la partie devise (pas de colonnes de salaire ici)
+    # On désactive la partie devise (pas de colonnes de salaire)
     res_up = PackageDataCleaning.pipeline(df_up, MLReadyPipeline();
                       company_size_order = UptoDown(),
                       do_currency = false)
@@ -112,7 +111,7 @@ end
     @test nrow(res_up) == 3
     @test nrow(res_down) == 3
 
-    # On vérifie que la normalisation a produit une colonne catégorielle cohérente
+    # On vérifie que la normalisation a produit une colonne catégorielle
     @test res_up.company_size isa CategoricalVector
     @test res_down.company_size isa CategoricalVector
     @test all(lev -> lev in levels(res_up.company_size), ["S", "M", "L"])
@@ -120,7 +119,6 @@ end
 
 
 @testset "CurrencyFocusPipeline - conversion sans erreur" begin
-    # Petit DataFrame minimal avec une structure plausible pour la conversion
     df = DataFrame(
         salary           = [1000.0, 2000.0],
         salary_currency  = ["USD", "EUR"],
@@ -131,7 +129,7 @@ end
 
     @test isa(df2, DataFrame)
     @test nrow(df2) == 2
-    # On vérifie simplement que la colonne salary (et la colonne convertie) existent toujours
+    # On vérifie que la colonne salary et la colonne convertie existent toujours
     colnames = String.(names(df2))
     @test "salary" in colnames
     @test "salary_in_usd" in colnames
@@ -149,7 +147,7 @@ end
         x_bool = [true, missing, false],
     )
 
-    # On écrit un CSV brut avec CSV.write pour tester la chaîne complète
+    # On écrit un CSV avec CSV.write
     CSV.write(in_path, df)
 
     df_clean = PackageDataCleaning.export_pipeline(in_path, LightCleanPipeline(), out_path)
@@ -157,7 +155,7 @@ end
     @test isa(df_clean, DataFrame)
     @test isfile(out_path)
 
-    # On relit le fichier exporté et on vérifie la cohérence
+    # On relit le fichier exporté et on vérifie
     df_out = DataFrame(CSV.File(out_path))
     @test df_out == df_clean
 end

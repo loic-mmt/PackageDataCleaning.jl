@@ -7,7 +7,7 @@ using CategoricalArrays
     df = DataFrame(employment_type = ["FT", "PT"])
     df2 = normalize(df, EmploymentType())
     @test df2 !== df
-    @test df.employment_type[1] == "FT"              # original not modified
+    @test df.employment_type[1] == "FT"
     if haskey(PackageDataCleaning.EMPLOYMENT_TYPE_MAPPING, "FT")
         @test df2.employment_type[1] == PackageDataCleaning.EMPLOYMENT_TYPE_MAPPING["FT"]
     end
@@ -71,13 +71,12 @@ end
 end
 
 @testset "normalize! JobTitle - mapping et fallback" begin
-    # 1) Test générique basé sur JOB_TITLE_MAPPING si non vide
     if !isempty(PackageDataCleaning.JOB_TITLE_MAPPING)
         raw, canon = first(collect(PackageDataCleaning.JOB_TITLE_MAPPING))
         df = DataFrame(job_title = [raw, lowercase(raw), "Unknown title", missing])
         normalize!(df, JobTitle())
 
-        # clé exacte ou via lowercase doit renvoyer la forme canonique
+        # clé exacte ou via lowercase
         @test df.job_title[1] == canon || df.job_title[1] == get(PackageDataCleaning.JOB_TITLE_MAPPING, raw, raw)
         @test df.job_title[2] == canon || df.job_title[2] == get(PackageDataCleaning.JOB_TITLE_MAPPING, lowercase(raw), lowercase(raw))
 
@@ -86,7 +85,7 @@ end
         # missing conservé
         @test isequal(df.job_title[4], missing)
     else
-        # 2) Si JOB_TITLE_MAPPING est vide, on teste les comportements génériques
+        # Si JOB_TITLE_MAPPING est vide, on teste les comportements génériques
         df = DataFrame(job_title = ["Some title", missing])
         normalize!(df, JobTitle())
         @test df.job_title[1] == "Some title"
@@ -117,7 +116,7 @@ end
     @test nrow(df) == length(df.region)
     @test isequal(df.region[4], missing)
 
-    # Si REGION_MAP contient un code connu, on vérifie la cohérence
+    # Si REGION_MAP contient un code connu, on vérifie
     if df.country[1] !== missing && haskey(PackageDataCleaning.REGION_MAP, df.country[1])
         @test df.region[1] == PackageDataCleaning.REGION_MAP[df.country[1]]
     end

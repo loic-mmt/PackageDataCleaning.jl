@@ -27,7 +27,7 @@ end
 
     df2 = impute_missing(df)
 
-    @test df !== df2          # objets distincts
+    @test df !== df2 # objets distincts
     @test any(ismissing, df.x_num)
     @test any(ismissing, df.x_str)
     @test any(ismissing, df.x_bool)
