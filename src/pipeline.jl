@@ -1,10 +1,66 @@
+"""
+    AbstractPipelineMode
+
+Type abstrait racine pour représenter un "mode" de pipeline de nettoyage /
+préparation des données. Chaque sous-type (par ex. `MinimalPipeline`,
+`LightCleanPipeline`, `MLReadyPipeline`, etc.) encode une séquence d’étapes
+spécifique (validation, dédoublonnage, imputation, normalisation, FX, …)
+utilisée par [`pipeline`](@ref).
+"""
 abstract type AbstractPipelineMode end
 
+"""
+    MinimalPipeline <: AbstractPipelineMode
+
+Mode de pipeline minimal : ingestion, validation optionnelle du schéma,
+standardisation des noms de colonnes et inférence de types. Sert de brique
+de base pour les autres pipelines.
+"""
 struct MinimalPipeline      <: AbstractPipelineMode end
+
+"""
+    LightCleanPipeline <: AbstractPipelineMode
+
+Mode de pipeline "léger" pour l’exploration (EDA) : pipeline minimal +
+dédoublonnage modéré (`KeepFirst()` par défaut) + imputation "soft"
+(médiane, mode, majorité booléenne).
+"""
 struct LightCleanPipeline   <: AbstractPipelineMode end
+
+"""
+    StrictCleanPipeline <: AbstractPipelineMode
+
+Mode de pipeline "strict" focalisé sur la qualité des données : pipeline
+minimal + dédoublonnage agressif (`DropAll()` par défaut) + winsorisation
+des valeurs extrêmes numériques + imputation stricte (nouveau niveau "NA"
+pour les catégorielles).
+"""
 struct StrictCleanPipeline  <: AbstractPipelineMode end
+
+"""
+    MLReadyPipeline <: AbstractPipelineMode
+
+Mode de pipeline "ML-ready" : s’appuie sur `StrictCleanPipeline` puis applique
+des normalisations métiers (types de contrat, taille d’entreprise, télétravail,
+intitulés de poste, pays) et une conversion éventuelle des salaires en USD.
+"""
 struct MLReadyPipeline      <: AbstractPipelineMode end
+
+"""
+    CurrencyFocusPipeline <: AbstractPipelineMode
+
+Mode de pipeline focalisé sur les questions de devise : pipeline minimal
+puis conversion des salaires en USD via les taux de change (`UseExchangeRates()`).
+"""
 struct CurrencyFocusPipeline <: AbstractPipelineMode end
+
+"""
+    NoImputePipeline <: AbstractPipelineMode
+
+Mode de pipeline sans imputation : pipeline minimal + dédoublonnage (mode
+configurable), en conservant explicitement les `missing` pour traitement
+ultérieur.
+"""
 struct NoImputePipeline     <: AbstractPipelineMode end
 
 
@@ -13,32 +69,120 @@ struct NoImputePipeline     <: AbstractPipelineMode end
 """
     pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
     pipeline(path::AbstractString, mode::AbstractPipelineMode; load_kwargs...)
-    pipeline(io::IO, mode::AbstractPipelineMode; load_kwargs...)
+    pipeline(io::IO,           mode::AbstractPipelineMode; load_kwargs...)
 
-Point d'entrée générique pour exécuter un pipeline de nettoyage/normalisation.
+Point d'entrée générique pour exécuter un pipeline de nettoyage / préparation
+des données selon un "mode" donné.
 
-- Les méthodes sur `path::AbstractString` et `io::IO` chargent d'abord un CSV
-  via `import_data`, puis délèguent à la version `pipeline(df, mode; ...)`.
-- Les méthodes spécialisées sur chaque `*Pipeline` définissent les étapes
-  appliquées (validation, dédoublonnage, imputation, normalisation, FX, etc.).
+- Les variantes sur `path::AbstractString` et `io::IO` chargent d’abord un CSV
+  via `import_data`, puis délèguent à `pipeline(df, mode; ...)`.
+- La variante sur `df::AbstractDataFrame` applique directement la séquence
+  d’étapes définie par le mode (validation, dédoublonnage, imputation,
+  normalisation, conversion de devise, etc.).
 
- Exemple d'utilisation :
+# Modes de pipeline
+
+Les principaux modes fournis sont :
+
+- [`MinimalPipeline`](@ref)  
+  Pipeline minimal :  
+  1. validation optionnelle du schéma (`validate_schema`) ;  
+  2. standardisation des noms de colonnes (`standardize_colnames!`) ;  
+  3. inférence de types (`enforce_types`).
+
+- [`LightCleanPipeline`](@ref)  
+  Pipeline "léger" pour exploration :  
+  1. `MinimalPipeline` ;  
+  2. dédoublonnage (`deduplicate_rows`, `KeepFirst()` par défaut) ;  
+  3. imputation douce (`impute_missing!` avec `NumMedian`, `CatMode`, `BoolMajority`).  
+
+  Mots-clés principaux :  
+  - `dedup_mode::DedupMode` (par défaut `KeepFirst()`),  
+  - `dedup_by` (colonnes utilisées pour la clé de déduplication),  
+  - `num_method`, `cat_method`, `bool_method` pour configurer l’imputation.
+
+- [`StrictCleanPipeline`](@ref)  
+  Pipeline "strict" focalisé sur la qualité des données :  
+  1. `MinimalPipeline` ;  
+  2. dédoublonnage agressif (`deduplicate_rows` avec `DropAll()` par défaut) ;  
+  3. winsorisation des valeurs extrêmes numériques (`winsorize`) ;  
+  4. imputation stricte (`impute_missing!` avec `NumMedian`, `CatNewLevel("NA")`,
+     `BoolMajority`).  
+
+  Mots-clés principaux :  
+  - `dedup_by` : colonnes utilisées pour la clé de déduplication.
+
+- [`MLReadyPipeline`](@ref)  
+  Pipeline prêt pour l’entraînement de modèles :  
+  1. `StrictCleanPipeline` ;  
+  2. normalisations métiers (`normalize!` avec `EmploymentType`, `CompanySize`,
+     `RemoteRatio`, `JobTitle`, `CountryCode`) si les colonnes existent ;  
+  3. conversion éventuelle en USD (`convert_currency_to_usd!`) selon un drapeau.  
+
+  Mots-clés principaux :  
+  - `company_size_order::NormalMode` (`UptoDown()` ou `DowntoUp()`) ;  
+  - `do_currency::Bool` (par défaut `true`).
+
+- [`CurrencyFocusPipeline`](@ref)  
+  Pipeline focalisé sur la conversion de devise :  
+  1. `MinimalPipeline` ;  
+  2. conversion en USD (`convert_currency_to_usd!`).  
+
+- [`NoImputePipeline`](@ref)  
+  Pipeline sans imputation :  
+  1. `MinimalPipeline` ;  
+  2. dédoublonnage (`deduplicate_rows`, mode configurable).  
+  Les `missing` sont conservés pour un traitement ultérieur.
+
+# Arguments
+
+- `df`   : `AbstractDataFrame` déjà chargé.
+- `path` : chemin vers un fichier CSV brut.
+- `io`   : flux IO contenant des données CSV (par ex. `IOBuffer`, fichier ouvert).
+- `mode` : instance d’un sous-type de [`AbstractPipelineMode`](@ref) indiquant
+           la séquence d’étapes à appliquer.
+- `kwargs...` / `load_kwargs...` :
+    - pour `df` : mots-clés spécifiques au mode (validation, dédup, imputation, FX, etc.) ;
+    - pour `path` / `io` : options de chargement, transmises à `import_data`
+      (par ex. `delim=','`, `header=true`, …).
+
+# Retour
+
+- Un nouveau `DataFrame` résultant de l’application du pipeline choisi.
+
+# Exemples
+
+Pipeline ML complet depuis un chemin :
+
 ```julia
-# 1) Depuis un chemin de fichier, pipeline ML complet :
-df_ml = pipeline("data/raw_salaries.csv", MLReadyPipeline())
+df_ml = pipeline("data/raw_salaries.csv", MLReadyPipeline();
+                 required_columns = [:work_year, :salary, :salary_currency],
+                 strict = true)
+```
 
-# 2) Pipeline léger pour EDA, depuis un DataFrame déjà chargé :
-df_light = pipeline(df, LightCleanPipeline(); dedup_by = [:company_name, :job_title])
+Pipeline léger pour EDA, à partir d’un DataFrame déjà chargé :
 
-# 3) Pipeline strict avec validation de schéma :
+```julia
+df_light = pipeline(df, LightCleanPipeline();
+                    dedup_by   = [:company_name, :job_title],
+                    num_method = NumMean())
+```
+
+Pipeline strict sans configuration particulière (par défaut) :
+
+```julia
 required = [:work_year, :salary, :salary_currency]
 df_strict = pipeline("data/raw_salaries.csv",
                      StrictCleanPipeline();
                      required_columns = required,
                      strict = true)
+```
 
-# 4) Juste conversion USD :
-df_fx = pipeline(df, CurrencyFocusPipeline())
+Pipeline focalisé sur les devises :
+
+```julia
+df_fx = pipeline(df, CurrencyFocusPipeline();
+                 required_columns = [:salary, :salary_currency])
 ```
 """
 function pipeline(df::AbstractDataFrame, mode::AbstractPipelineMode; kwargs...)
@@ -56,15 +200,7 @@ function pipeline(io::IO, mode::AbstractPipelineMode; load_kwargs...)
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::MinimalPipeline; required_columns=nothing, strict::Bool=true)
 
-Pipeline minimal : ingestion + validation + normalisation des noms de colonnes
-+ inférence de types.
-
-- `required_columns` : liste de colonnes attendues ; si `nothing`, pas de validation.
-- `strict` : si `true`, `validate_schema` lève une erreur si des colonnes manquent.
-"""
 function pipeline(df::AbstractDataFrame, ::MinimalPipeline;
                   required_columns=nothing,
                   strict::Bool=true)
@@ -81,20 +217,7 @@ function pipeline(df::AbstractDataFrame, ::MinimalPipeline;
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::LightCleanPipeline; kwargs...)
 
-Pipeline "léger" pour exploration :
-1. `MinimalPipeline` (ingestion + validation + types)
-2. dédoublonnage (par défaut `KeepFirst()`)
-3. imputation soft (médiane, mode, majorité booléenne).
-
-Mots-clés utiles :
-- `required_columns`, `strict` : passés à `MinimalPipeline`.
-- `dedup_mode` :: `DedupMode` (par défaut `KeepFirst()`).
-- `dedup_by`   : colonnes utilisées pour la clé (par défaut toutes les colonnes).
-- `num_method`, `cat_method`, `bool_method` : stratégies d’imputation.
-"""
 function pipeline(df::AbstractDataFrame, ::LightCleanPipeline;
                   required_columns=nothing,
                   strict::Bool=true,
@@ -123,15 +246,7 @@ function pipeline(df::AbstractDataFrame, ::LightCleanPipeline;
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::StrictCleanPipeline; kwargs...)
 
-Pipeline "strict" : qualité max.
-1. `MinimalPipeline`.
-2. dédoublonnage agressif (`DropAll()` par défaut).
-3. winsorisation (cap des valeurs extrêmes numériques).
-4. imputation stricte (nouveau niveau "NA" pour les catégorielles).
-"""
 function pipeline(df::AbstractDataFrame, ::StrictCleanPipeline;
                   required_columns=nothing,
                   strict::Bool=true,
@@ -159,20 +274,7 @@ function pipeline(df::AbstractDataFrame, ::StrictCleanPipeline;
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::MLReadyPipeline; kwargs...)
 
-Pipeline "ML-ready" : prêt pour modèle.
-1. `StrictCleanPipeline`.
-2. normalisations métiers (`EmploymentType`, `CompanySize`, `RemoteRatio`,
-   `JobTitle`, `CountryCode`) si les colonnes existent.
-3. conversion en USD via `UseExchangeRates()` (optionnelle).
-
-Mots-clés utiles :
-- `required_columns`, `strict` : passés à `StrictCleanPipeline`.
-- `company_size_order` :: `NormalMode` (`UptoDown()` ou `DowntoUp()`).
-- `do_currency` :: Bool (par défaut `true`).
-"""
 function pipeline(df::AbstractDataFrame, ::MLReadyPipeline;
                   required_columns=nothing,
                   strict::Bool=true,
@@ -211,13 +313,7 @@ function pipeline(df::AbstractDataFrame, ::MLReadyPipeline;
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::CurrencyFocusPipeline; kwargs...)
 
-Pipeline focalisé sur la conversion de devises :
-1. `MinimalPipeline`.
-2. conversion vers USD via `UseExchangeRates()`.
-"""
 function pipeline(df::AbstractDataFrame, ::CurrencyFocusPipeline;
                   required_columns=nothing,
                   strict::Bool=true)
@@ -230,16 +326,7 @@ function pipeline(df::AbstractDataFrame, ::CurrencyFocusPipeline;
 end
 
 
-"""
-    pipeline(df::AbstractDataFrame, ::NoImputePipeline; kwargs...)
 
-Pipeline sans imputation :
-1. `MinimalPipeline`.
-2. dédoublonnage (mode configurable).
-
-Les `missing` sont conservés pour être traités plus tard par l’utilisateur
-ou par un modèle plus sophistiqué.
-"""
 function pipeline(df::AbstractDataFrame, ::NoImputePipeline;
                   required_columns=nothing,
                   strict::Bool=true,
