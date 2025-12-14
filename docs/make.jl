@@ -1,3 +1,4 @@
+push!(LOAD_PATH, joinpath(@__DIR__, ".."))
 using PackageDataCleaning
 using Documenter
 
@@ -17,6 +18,7 @@ makedocs(;
         "API"  => "api.md",
     ],
     checkdocs = :none,
+
 )
 
 deploydocs(;

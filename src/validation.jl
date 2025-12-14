@@ -163,8 +163,42 @@ See also [`_missing_columns`](@ref)
 """
 function validate_schema end
 
+
+"""
+    SchemaMode
+
+Type abstrait pour représenter le mode de validation de schéma utilisé par
+[`validate_schema`](@ref).
+
+Les sous-types principaux sont :
+
+- [`StrictMode`](@ref)  : validation stricte, lève une erreur si des colonnes manquent ;
+- [`LenientMode`](@ref) : validation tolérante, renvoie simplement la liste des colonnes manquantes.
+"""
 abstract type SchemaMode end
+
+"""
+    StrictMode <: SchemaMode
+
+Mode de validation **strict** pour [`validate_schema`](@ref) :
+
+- si toutes les colonnes requises sont présentes, la fonction renvoie `true` ;
+- sinon, un `ArgumentError` est levé avec la liste des colonnes manquantes.
+
+Ce mode est utilisé par défaut lorsque `strict=true` dans `validate_schema(df, required_columns; strict=true)`.
+"""
 struct StrictMode <: SchemaMode end
+
+"""
+    LenientMode <: SchemaMode
+
+Mode de validation **tolérant** pour [`validate_schema`](@ref) :
+
+- renvoie un `Vector{Symbol}` des colonnes manquantes (éventuellement vide) ;
+- ne lève pas d’exception, même si des colonnes requises sont absentes.
+
+Ce mode est utilisé lorsque `strict=false` dans `validate_schema(df, required_columns; strict=false)`.
+"""
 struct LenientMode <: SchemaMode end
 
 function validate_schema(df::AbstractDataFrame, required_columns, ::StrictMode)
@@ -535,8 +569,46 @@ sort(out.a)
 
 """
 function deduplicate_rows end
+
+"""
+    DedupMode
+
+Type abstrait pour les stratégies de déduplication de lignes utilisées par
+[`deduplicate_rows`](@ref).
+
+Les sous-types fournis sont :
+
+- [`KeepFirst`](@ref) : conserve la première occurrence de chaque clé ;
+- [`DropAll`](@ref)   : ne garde que les clés apparaissant une seule fois.
+"""
 abstract type DedupMode end
+
+"""
+    KeepFirst <: DedupMode
+
+Stratégie de déduplication qui conserve la **première** occurrence de chaque
+clé de déduplication et supprime les doublons suivants (sauf lignes protégées).
+
+Utilisé avec :
+
+```julia
+deduplicate_rows(df, KeepFirst(); by = [:col1, :col2])
+```
+"""
 struct KeepFirst <: DedupMode end      # garde la première occurrence
+
+"""
+    DropAll <: DedupMode
+
+Stratégie de déduplication qui supprime **toutes** les lignes appartenant à
+une clé dupliquée et ne garde que les clés uniques (sauf lignes protégées).
+
+Utilisé avec :
+
+```julia
+deduplicate_rows(df, DropAll(); by = [:col1, :col2])
+```
+"""
 struct DropAll   <: DedupMode end      # ne garde que les clés (valeurs) apparaissant une seule fois
 function deduplicate_rows(df::AbstractDataFrame, ::KeepFirst;
                           by = names(df),

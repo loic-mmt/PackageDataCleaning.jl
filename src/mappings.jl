@@ -147,6 +147,19 @@ const JOB_TITLE_MAPPING = Dict(
 # Employment type normalization
 ###############################
 
+"""
+    EMPLOYMENT_TYPES
+
+Tuple ordonné des types de contrat normalisés utilisés par les fonctions de
+normalisation (`EmploymentType`, [`normalize!`](@ref), etc.).
+
+Les valeurs sont des libellés lisibles ("Full-time", "Part-time", "Contract",
+"Freelance") qui peuvent servir :
+
+- de niveaux pour des `CategoricalArray`,
+- de référence dans les tests,
+- de source pour des contrôles de cohérence ou d’affichage.
+"""
 const EMPLOYMENT_TYPES = (
     "Full-time",
     "Part-time",
@@ -293,6 +306,25 @@ const COUNTRY_CODE_MAPPING = Dict(
 # Company size mapping
 ########################
 
+"""
+    SIZE
+
+Vecteur des codes de taille d’entreprise utilisés par la normalisation
+(`CompanySize`, [`normalize!`](@ref)) :
+
+- `"S"` : petite structure,
+- `"M"` : taille moyenne,
+- `"L"` : grande entreprise.
+
+Ces codes sont utilisés à la fois pour le mapping (`SIZE_MAPPING`), les tests
+et comme base pour construire des facteurs ordonnés (par ex. `S < M < L`).
+"""
+const SIZE = [
+    "S",
+    "M",
+    "L",
+]
+
 const SIZE_MAPPING = Dict(
     "S" => "Small",
     "M" => "Medium",
@@ -305,15 +337,30 @@ const SIZE_LEVELS = [
     "Large",
 ]
 
-const SIZE = [
-    "S",
-    "M",
-    "L",
-]
-
 ########################
 # Experience level mapping
 ########################
+
+"""
+    EXPERIENCE
+
+Tuple des codes d’expérience normalisés utilisés pour représenter le niveau
+d’ancienneté d’un poste :
+
+- `"EN"` : débutant / entry-level,
+- `"MI"` : intermédiaire / mid-level,
+- `"SE"` : senior,
+- `"EX"` : exécutif / direction.
+
+Ces codes servent de base aux normalisations (`Experience level`), aux tests et
+éventuellement aux facteurs ordonnés.
+"""
+const EXPERIENCE = (
+    "EN",
+    "MI",
+    "SE",
+    "EX",
+)
 
 const EXPERIENCE_MAPPING = Dict(
     "EN" => "Entry-level",
@@ -322,14 +369,22 @@ const EXPERIENCE_MAPPING = Dict(
     "EX" => "Executive-level",
 )
 
-const EXPERIENCE = (
-    "EN",
-    "MI",
-    "SE",
-    "EX",
-)
+"""
+    EXCHANGE_RATES :: DataFrame
 
+Table de taux de change synthétiques utilisée par [`convert_currency_to_usd!`](@ref)
+et [`convert_currency_to_usd`](@ref) en mode [`UseExchangeRates`](@ref).
 
+Colonnes :
+
+- `year`     : année de référence (2020–2023),
+- `currency` : code devise (ex: "EUR", "USD", "JPY", ...),
+- `rate`     : taux de conversion vers l’USD (1 unité de `currency` = `rate` USD).
+
+Ce DataFrame sert uniquement de fixture/mapping interne pour les conversions de
+salaires dans les exemples et les tests ; il ne vise pas à refléter des taux
+réels de marché.
+"""
 const EXCHANGE_RATES = DataFrame(
     year = repeat(2020:2023, inner=41),
     currency = repeat([

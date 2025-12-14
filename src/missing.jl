@@ -280,6 +280,31 @@ function impute_missing(df::AbstractDataFrame; kwargs...)
 end
 
 
+"""
+    impute_column!(col, method::ImputeMethod)
+
+Fonction interne bas niveau appelée par [`impute_missing!`](@ref) pour appliquer
+une stratégie d’imputation à une colonne donnée.
+
+Cette fonction est définie de manière générique pour le couple `(col, method)`
+et plusieurs méthodes spécialisées sont fournies selon le type de la colonne et
+du mode d’imputation :
+
+- colonnes numériques (`Union{Missing, Real}`) avec [`NumMedian`](@ref),
+  [`NumMean`](@ref) ou [`NumConstant`](@ref) ;
+- colonnes textuelles (`Union{Missing, AbstractString}`) avec
+  [`CatMode`](@ref), [`CatConstant`](@ref), [`CatNewLevel`](@ref) ;
+- colonnes booléennes (`Union{Missing, Bool}`) avec [`BoolMajority`](@ref) ;
+- colonnes catégorielles (`CategoricalVector`) avec les mêmes modes
+  catégoriels.
+
+La méthode générique définie ici ne fait rien et renvoie simplement `col` :
+tout le travail réel est effectué par les méthodes plus spécialisées.
+
+Cette fonction n’est généralement pas appelée directement par l’utilisateur,
+mais documentée pour référence interne et pour la génération automatique de
+l’API.
+"""
 function impute_column!(col, method::ImputeMethod)
     return col
 end

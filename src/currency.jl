@@ -1,10 +1,41 @@
 # convert_currency_to_usd
 
 
-# Type abstrait pour les conversions de devises
+"""
+    CurrencyConversionMode
+
+Type abstrait racine pour les stratégies de conversion de devises utilisées par
+[`convert_currency_to_usd!`](@ref) et [`convert_currency_to_usd`](@ref).
+
+Chaque sous-type encode une manière particulière de convertir des salaires dans
+différentes devises vers l’USD (taux de change fixes, historiques, etc.).
+Le mode actuellement implémenté est [`UseExchangeRates`](@ref).
+"""
 abstract type CurrencyConversionMode end
 
-# Modes de conversion disponibles
+"""
+    UseExchangeRates <: CurrencyConversionMode
+
+Mode de conversion qui utilise une table explicite de taux de change historiques,
+typiquement la constante [`EXCHANGE_RATES`](@ref), pour convertir des salaires
+vers l’USD.
+
+Utilisé via :
+
+```julia
+convert_currency_to_usd!(df, UseExchangeRates(); salary_col=:salary,
+                                              currency_col=:salary_currency,
+                                              year_col=:work_year,
+                                              usd_col=:salary_in_usd,
+                                              exchange_rates=EXCHANGE_RATES)
+```
+
+ou, en version non mutante :
+
+```julia
+df_usd = convert_currency_to_usd(df, UseExchangeRates())
+```
+"""
 struct UseExchangeRates <: CurrencyConversionMode end
 
 """
@@ -96,6 +127,16 @@ df_usd = convert_currency_to_usd(df, UseExchangeRates())
 See also [`EXCHANGE_RATES`](@ref), [`UseExchangeRates`](@ref), [`_resolve_col`](@ref)
 """
 function convert_currency_to_usd! end
+"""
+    convert_currency_to_usd(df, mode::CurrencyConversionMode, args...; kwargs...) -> DataFrame
+
+Version non mutante de [`convert_currency_to_usd!`](@ref) : crée une copie de `df`,
+applique [`convert_currency_to_usd!`](@ref) sur cette copie avec le même `mode`
+et les mêmes arguments, puis renvoie le nouveau `DataFrame`.
+
+Voir la documentation de [`convert_currency_to_usd!`](@ref) pour le détail des
+arguments et du comportement.
+"""
 function convert_currency_to_usd end
 
 # Implémentation de l'API générique (mutante)

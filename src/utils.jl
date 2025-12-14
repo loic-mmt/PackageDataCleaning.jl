@@ -11,7 +11,6 @@ Retourne le nom exact de la colonne tel qu'il apparaît dans le DataFrame.
 # Throws
 - `ArgumentError` : Si la colonne n'est pas trouvée dans le DataFrame
 """
-
 function _resolve_col(df::AbstractDataFrame, col::Symbol)
     for name in names(df)
         if name == col || String(name) == String(col)
