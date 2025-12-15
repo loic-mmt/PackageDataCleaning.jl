@@ -48,3 +48,12 @@ format:
   `MinimalPipeline`, `LightCleanPipeline`, `StrictCleanPipeline`,  
   `MLReadyPipeline`, `CurrencyFocusPipeline`, `NoImputePipeline`.
 
+---
+
+## Pipelines R prêtes à l’emploi
+
+- Types de pipelines :  
+  `pipeline_minimal()`, `pipeline_light_clean()`,
+  `pipeline_strict_clean()`, `pipeline_ml_ready()`,
+  `pipeline_currency_focus()`,`pipeline_no_impute()`, 
+  `export_pipeline()`
